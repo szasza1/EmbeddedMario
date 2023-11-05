@@ -1,6 +1,7 @@
 #undef F_CPU
 #define F_CPU 16000000
 #include "avr_mcu_section.h"
+#include <stdbool.h>
 AVR_MCU(F_CPU, "atmega128");
 
 #define	__AVR_ATmega128__	1
@@ -27,19 +28,20 @@ static void port_init() {
 #define BUTTON_LEFT		2
 #define BUTTON_RIGHT	3
 #define BUTTON_UP		4
+#define BUTTON_DOWN		5
 static int button_accept = 1;
 
 static int button_pressed() {
-	// right
+	// up
 	if (!(PINA & 0b00000001) & button_accept) { // check state of button 1 and value of button_accept
 		button_accept = 0; // button is pressed
-		return BUTTON_RIGHT;
+		return BUTTON_UP;
 	}
 
-	// up
+	// left
 	if (!(PINA & 0b00000010) & button_accept) { // check state of button 2 and value of button_accept
 		button_accept = 0; // button is pressed
-		return BUTTON_UP;
+		return BUTTON_LEFT;
 	}
 
 	// center
@@ -48,10 +50,17 @@ static int button_pressed() {
 		return BUTTON_CENTER;
 	}
 
-	// left
+	// right
+	if (!(PINA & 0b00001000) & button_accept) { // check state of button 4 and value of button_accept
+		button_accept = 0; // button is pressed
+		return BUTTON_RIGHT;
+	}
+
+
+	// down
 	if (!(PINA & 0b00010000) & button_accept) { // check state of button 5 and value of button_accept
 		button_accept = 0; // button is pressed
-		return BUTTON_LEFT;
+		return BUTTON_DOWN;
 	}
 
 	return BUTTON_NONE;
@@ -177,17 +186,41 @@ static void lcd_send_line2(char *str) {
 	lcd_send_text(str);
 }
 
+static void screen_update(char *map){
+	// Update the first line
+	lcd_send_command(DD_RAM_ADDR);
+	for (int i = 0; i < 16; i++)
+	{
+		lcd_send_data(map[0][i]);
+	}
+
+	// Update the second line
+	lcd_send_command(DD_RAM_ADDR2);
+	for (int i = 0; i < 16; i++)
+	{
+		lcd_send_data(map[1][i]);
+	}
+}
+
 static char MARIO[] = {
 	0b01100,
 	0b01111,
 	0b01110,
-	0b01111,
-	0b11110,
+	0b01110,
+	0b01110,
 	0b11111,
 	0b01010,
 	0b11011
 };
 
+
+// Map
+#define EMPTY_CHAR ' '
+
+static unsigned char MAP[2][16] = {
+	{' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '},
+	{' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '}
+};
 
 int main() {
 	port_init();
@@ -198,9 +231,86 @@ int main() {
 	{
 		lcd_send_data(MARIO[i]);
 	}
-	
+	// Game Loop
+
 	lcd_send_command(DD_RAM_ADDR);
 	lcd_send_data(0);
 
+	int movement_offset = 0;
+	unsigned int start_col = 0;
+	unsigned int start_row = 0;
+	bool delete_prev = false;
+
+	while(1)
+	{	
+
+
+		// Wait for the left button signal 
+		while(button_pressed() != BUTTON_RIGHT){
+			button_unlock();
+		}
+
+		if (movement_offset == 4){
+			start_col++;
+			delete_prev = true;
+			
+			// The 'deleted' block's DDRAM should be updated before its CGRAM.
+			lcd_send_command(DD_RAM_ADDR + start_col - 1);
+			lcd_send_data(EMPTY_CHAR);
+		}
 	
+		movement_offset = (movement_offset + 1) % 5;
+
+		// Update CGRAM
+		lcd_send_command(CG_RAM_ADDR);
+
+		// Char 1
+		for (int i = 0; i < 8; i++)
+		{
+			lcd_send_data(MARIO[i] >> movement_offset);
+		}	
+		
+		// If offset is not 0, then the second character also should be updated.
+		if(movement_offset)
+		{
+			// Char 2
+			for (int i = 0; i < 8; i++)
+			{	
+				char temp = MARIO[i] << (5 - movement_offset);
+				lcd_send_data(temp);
+			}
+		}
+
+		// Update map's encoding matrix
+		for (int i = 0; i < 2; i++)
+		{
+			for (int j = 0; j < 16; j++)
+			{
+				if (i == start_row && j == start_col)
+				{
+					if (delete_prev && (j - 1) >= 0){ MAP[i][j - 1] = EMPTY_CHAR; }
+					
+					MAP[i][j] = 0;
+					if (movement_offset){
+						MAP[i][j + 1] = 1;
+					}
+
+				}	
+
+
+			}
+			
+		}
+		
+
+
+
+		// Update DDRAM
+		screen_update(MAP);
+
+		delete_prev = false;
+		button_unlock();
+	}
+
+		
 }
