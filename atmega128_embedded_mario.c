@@ -186,19 +186,19 @@ static void lcd_send_line2(char *str) {
 	lcd_send_text(str);
 }
 
-static void screen_update(char *map){
+static void screen_update(unsigned char *map){
 	// Update the first line
 	lcd_send_command(DD_RAM_ADDR);
 	for (int i = 0; i < 16; i++)
 	{
-		lcd_send_data(map[0][i]);
+		lcd_send_data(map[i]);
 	}
 
 	// Update the second line
 	lcd_send_command(DD_RAM_ADDR2);
 	for (int i = 0; i < 16; i++)
 	{
-		lcd_send_data(map[1][i]);
+		lcd_send_data(map[i + 16]);
 	}
 }
 
@@ -233,33 +233,65 @@ int main() {
 	}
 	// Game Loop
 
-	lcd_send_command(DD_RAM_ADDR);
-	lcd_send_data(0);
-
 	int movement_offset = 0;
-	unsigned int start_col = 0;
+	unsigned int start_col = 1;
 	unsigned int start_row = 0;
 	bool delete_prev = false;
+	bool face_right = true;
+	unsigned int pressed_button = BUTTON_NONE;
+
+	lcd_send_command(DD_RAM_ADDR + start_col);
+	lcd_send_data(0);
 
 	while(1)
 	{	
-
-
-		// Wait for the left button signal 
-		while(button_pressed() != BUTTON_RIGHT){
+		// Waiting for the next input
+		do
+		{
+			pressed_button = button_pressed();
 			button_unlock();
+		} while (pressed_button == BUTTON_NONE);
+		
+
+		// Process the input
+
+		if(pressed_button == BUTTON_LEFT)
+		{
+			face_right = false;
+		}	
+		else
+		{
+			face_right = true;
 		}
 
-		if (movement_offset == 4){
-			start_col++;
+
+		if (movement_offset == 4 && face_right){
+			start_col += 1;
+
 			delete_prev = true;
 			
 			// The 'deleted' block's DDRAM should be updated before its CGRAM.
 			lcd_send_command(DD_RAM_ADDR + start_col - 1);
 			lcd_send_data(EMPTY_CHAR);
+		} else if (movement_offset == 0 && !face_right)
+		{
+			start_col -= 1;
+			delete_prev = true;
+
+		} else if (movement_offset == 1 && !face_right)
+		{
+			lcd_send_command(DD_RAM_ADDR + start_col + 1);
+			lcd_send_data(EMPTY_CHAR);
 		}
-	
-		movement_offset = (movement_offset + 1) % 5;
+		
+		if (movement_offset == 0 && !face_right)
+		{
+			movement_offset = 4;
+		} else
+		{
+			movement_offset = (face_right ? (movement_offset + 1) : (movement_offset - 1)) % 5;
+		}
+
 
 		// Update CGRAM
 		lcd_send_command(CG_RAM_ADDR);
@@ -276,7 +308,9 @@ int main() {
 			// Char 2
 			for (int i = 0; i < 8; i++)
 			{	
-				char temp = MARIO[i] << (5 - movement_offset);
+				char temp = 0;
+				temp = MARIO[i] << (5 - movement_offset);
+
 				lcd_send_data(temp);
 			}
 		}
@@ -287,17 +321,24 @@ int main() {
 			for (int j = 0; j < 16; j++)
 			{
 				if (i == start_row && j == start_col)
-				{
-					if (delete_prev && (j - 1) >= 0){ MAP[i][j - 1] = EMPTY_CHAR; }
+				{	
 					
+					if (delete_prev)
+					{
+						int prev_col = face_right ? (j - 1) : (j + 2);
+						MAP[i][prev_col] = EMPTY_CHAR;
+					}
+					
+
 					MAP[i][j] = 0;
 					if (movement_offset){
 						MAP[i][j + 1] = 1;
+					} else
+					{
+						MAP[i][j + 1] = EMPTY_CHAR;
 					}
 
 				}	
-
-
 			}
 			
 		}
