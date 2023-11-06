@@ -202,30 +202,40 @@ static void screen_update(unsigned char *map){
 	}
 }
 
+#define EMPTY_CHAR ' '
+
+static void clean_map(unsigned char *map){
+	for (int i = 0; i < 32; i++)
+	{
+		map[i] = EMPTY_CHAR;
+	}
+	
+}
+
 static char MARIO[] = {
 	// Race right
+	0b00000,
+	0b00000,
 	0b01100,
 	0b01111,
-	0b01110,
-	0b01110,
 	0b01110,
 	0b11111,
 	0b01010,
 	0b11011,
 	// Face left
+	0b00000,
+	0b00000,
 	0b00110,
 	0b11110,
 	0b01110,
-	0b01110,
-	0b01110,
 	0b11111,
 	0b01010,
-	0b11011
+	0b11011,
 };
 
-
-// Map
-#define EMPTY_CHAR ' '
+// Character map
+// 2 3
+// 0 1
 
 static unsigned char MAP[2][16] = {
 	{' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '},
@@ -244,12 +254,17 @@ int main() {
 	}
 
 	int col_offset = 0;
-	unsigned int start_col = 1;
+	int row_offset = 0;
+
+	unsigned int start_col = 0;
 	unsigned int start_row = 1;
+
 	bool delete_prev = false;
 	bool face_right = true;
+
 	unsigned int pressed_button = BUTTON_NONE;
 
+	bool horizontal_movement = false;
 
 	int addr = start_row ? DD_RAM_ADDR2 : DD_RAM_ADDR;
 	lcd_send_command(addr + start_col);
@@ -260,112 +275,193 @@ int main() {
 	// Game Loop
 	while(1)
 	{	
+		horizontal_movement = false;
 		// Waiting for the next input
 		do
 		{
 			pressed_button = button_pressed();
 			button_unlock();
 		} while (pressed_button == BUTTON_NONE);
+
+
+		// Zero custom
+		lcd_send_command(CG_RAM_ADDR);
+
+		for (int i = 0; i < 4*8; i++)
+		{
+			lcd_send_data(0);
+		}
 		
 
-		// Process the input
 
+		// Process the input
 		if(pressed_button == BUTTON_LEFT)
 		{
 			face_right = false;
+			horizontal_movement = true;
 		}	
 		else if (pressed_button == BUTTON_RIGHT)
 		{
 			face_right = true;
-		} else 
+			horizontal_movement = true;
+		}
+		else if (pressed_button == BUTTON_UP)
+		{	
+			if (row_offset == 7)
+			{
+				start_row = 0;
+			}
+
+			row_offset = (row_offset + 1) % 8;
+			
+		}
+		else if (pressed_button == BUTTON_DOWN)
+		{
+			if (row_offset == 0 && start_row == 0)
+			{
+				row_offset = 7;
+				start_row = 1;
+			}
+			else
+			{
+				row_offset -= 1;
+			}
+
+		}
+		else 
 		{
 			continue;
 		}
 
-
 		// POSITION UPDATE
 		// Update movement offset and start column
-		if (col_offset == 4 && face_right){
-			start_col += 1;
 
-			delete_prev = true;
+		if (horizontal_movement)
+		{
+
+			if (col_offset == 4 && face_right){
+				start_col += 1;
+			}
 			
-			// The 'deleted' block's DDRAM should be updated before its CGRAM.
-			int addr = start_row ? DD_RAM_ADDR2 : DD_RAM_ADDR;
-			lcd_send_command(addr + start_col - 1);
-			lcd_send_data(EMPTY_CHAR);
-		} else if (col_offset == 0 && !face_right)
-		{
-			start_col -= 1;
-			delete_prev = true;
+			if (col_offset == 0 && !face_right)
+			{
+				start_col -= 1;
+				col_offset = 4;
+			}
+			else
+			{
+				col_offset = (face_right ? (col_offset + 1) : (col_offset - 1)) % 5;
+			}
 
-		} else if (col_offset == 1 && !face_right)
-		{
-			int addr = start_row ? DD_RAM_ADDR2 : DD_RAM_ADDR;
-			lcd_send_command(addr + start_col + 1);
-			lcd_send_data(EMPTY_CHAR);
-		}
-		
-		if (col_offset == 0 && !face_right)
-		{
-			col_offset = 4;
-		} else
-		{
-			col_offset = (face_right ? (col_offset + 1) : (col_offset - 1)) % 5;
 		}
 
+		// ************** Update CGRAM ************
 
-		// Update CGRAM
+		// ***************LOWER LINE***************
 		lcd_send_command(CG_RAM_ADDR);
 
-		// Char 1
-		for (int i = 0; i < 8; i++)
+		if (start_row)
 		{
-			int start_index = face_right ? 0 : 8;
-			lcd_send_data(MARIO[start_index + i] >> col_offset);
-		}	
-		
-		// If offset is not 0, then the second character also should be updated.
-		if(col_offset)
-		{
-			// Char 2
-			for (int i = 0; i < 8; i++)
-			{	
+			// Char 0
+			for (int i = 0; i < (8 - row_offset); i++)
+			{
 				int start_index = face_right ? 0 : 8;
-				char temp = 0;
-				temp = MARIO[start_index + i] << (5 - col_offset);
+				lcd_send_data(MARIO[start_index + i + row_offset] >> col_offset);
+			}	
+			for (int i = 0; i < row_offset; i++)
+			{
+				lcd_send_data(0);
+			}
+			
+			
+			// If offset is not 0, then the second character also should be updated.
+			if(col_offset)
+			{
+				// Char 1
+				for (int i = 0; i < (8 - row_offset); i++)
+				{	
+					int start_index = face_right ? 0 : 8;
+					char temp = 0;
+					temp = MARIO[start_index + i + row_offset] << (5 - col_offset);
 
-				lcd_send_data(temp);
+					lcd_send_data(temp);
+				}
+
+				for (int i = 0; i < row_offset; i++)
+				{
+					lcd_send_data(0);
+				}
+				
+			}
+		}
+
+		// ***************UPPER LINE***************
+		// If the row offset is greather than 2, or we are standing on the upper line with 0 offset.
+		if (row_offset >= 3 || !start_row)	
+		{
+			
+			// Char 2 start position
+			lcd_send_command(CG_RAM_ADDR + 16);
+
+			// Mario is in the upper region.
+			if (row_offset <= 2)
+			{	
+				// Char 2
+				for (int i = 0; i < 8; i++)
+				{
+					int start_index = face_right ? 0 : 8;
+					lcd_send_data(MARIO[start_index + i] >> col_offset);
+				}
+
+				// Char 3
+				for (int i = 0; i < 8; i++)
+				{
+					int start_index = face_right ? 0 : 8;
+					char temp = 0;
+					temp = MARIO[start_index + i] << (5 - col_offset);
+
+					lcd_send_data(temp);
+				}
+			}
+			else
+			{	
+				// Char 2
+				for (int i = 0; i < (8 - row_offset); i++)
+				{
+					lcd_send_data(0);
+				}
+
+				for (int i = 0; i < row_offset; i++)
+				{
+					int start_index = face_right ? 0 : 8;
+					lcd_send_data(MARIO[start_index + i] >> col_offset);
+				}
+
+
+				// Char 3
+				for (int i = 0; i < (8 - row_offset); i++)
+				{
+					lcd_send_data(0);
+				}
+
+				for (int i = 0; i < row_offset; i++)
+				{
+					int start_index = face_right ? 0 : 8;
+					char temp = 0;
+					temp = MARIO[start_index + i] << (5 - col_offset);
+
+					lcd_send_data(temp);
+				}
 			}
 		}
 
 		// Update map's encoding matrix
-		for (int i = 0; i < 2; i++)
-		{
-			for (int j = 0; j < 16; j++)
-			{
-				if (i == start_row && j == start_col)
-				{	
-					
-					if (delete_prev)
-					{
-						int prev_col = face_right ? (j - 1) : (j + 2);
-						MAP[i][prev_col] = EMPTY_CHAR;
-					}
-					
+		clean_map(MAP);
 
-					MAP[i][j] = 0;
-					if (col_offset){
-						MAP[i][j + 1] = 1;
-					} else
-					{
-						MAP[i][j + 1] = EMPTY_CHAR;
-					}
-
-				}	
-			}
-			
-		}
+		MAP[0][start_col] = 2;
+		MAP[0][start_col + 1] = 3;
+		MAP[1][start_col] = 0;
+		MAP[1][start_col + 1] = 1;
 		
 
 
