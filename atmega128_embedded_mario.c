@@ -203,8 +203,18 @@ static void screen_update(unsigned char *map){
 }
 
 static char MARIO[] = {
+	// Race right
 	0b01100,
 	0b01111,
+	0b01110,
+	0b01110,
+	0b01110,
+	0b11111,
+	0b01010,
+	0b11011,
+	// Face left
+	0b00110,
+	0b11110,
 	0b01110,
 	0b01110,
 	0b01110,
@@ -226,23 +236,28 @@ int main() {
 	port_init();
 	lcd_init();
 	
+	// Init CGRAM
 	lcd_send_command(CG_RAM_ADDR);
 	for (int i = 0; i < 8; i++)
 	{
 		lcd_send_data(MARIO[i]);
 	}
-	// Game Loop
 
 	int movement_offset = 0;
 	unsigned int start_col = 1;
-	unsigned int start_row = 0;
+	unsigned int start_row = 1;
 	bool delete_prev = false;
 	bool face_right = true;
 	unsigned int pressed_button = BUTTON_NONE;
 
-	lcd_send_command(DD_RAM_ADDR + start_col);
+
+	int addr = start_row ? DD_RAM_ADDR2 : DD_RAM_ADDR;
+	lcd_send_command(addr + start_col);
+
 	lcd_send_data(0);
 
+
+	// Game Loop
 	while(1)
 	{	
 		// Waiting for the next input
@@ -265,13 +280,16 @@ int main() {
 		}
 
 
+		// POSITION UPDATE
+		// Update movement offset and start column
 		if (movement_offset == 4 && face_right){
 			start_col += 1;
 
 			delete_prev = true;
 			
 			// The 'deleted' block's DDRAM should be updated before its CGRAM.
-			lcd_send_command(DD_RAM_ADDR + start_col - 1);
+			int addr = start_row ? DD_RAM_ADDR2 : DD_RAM_ADDR;
+			lcd_send_command(addr + start_col - 1);
 			lcd_send_data(EMPTY_CHAR);
 		} else if (movement_offset == 0 && !face_right)
 		{
@@ -280,7 +298,8 @@ int main() {
 
 		} else if (movement_offset == 1 && !face_right)
 		{
-			lcd_send_command(DD_RAM_ADDR + start_col + 1);
+			int addr = start_row ? DD_RAM_ADDR2 : DD_RAM_ADDR;
+			lcd_send_command(addr + start_col + 1);
 			lcd_send_data(EMPTY_CHAR);
 		}
 		
@@ -299,7 +318,8 @@ int main() {
 		// Char 1
 		for (int i = 0; i < 8; i++)
 		{
-			lcd_send_data(MARIO[i] >> movement_offset);
+			int start_index = face_right ? 0 : 8;
+			lcd_send_data(MARIO[start_index + i] >> movement_offset);
 		}	
 		
 		// If offset is not 0, then the second character also should be updated.
@@ -308,8 +328,9 @@ int main() {
 			// Char 2
 			for (int i = 0; i < 8; i++)
 			{	
+				int start_index = face_right ? 0 : 8;
 				char temp = 0;
-				temp = MARIO[i] << (5 - movement_offset);
+				temp = MARIO[start_index + i] << (5 - movement_offset);
 
 				lcd_send_data(temp);
 			}
