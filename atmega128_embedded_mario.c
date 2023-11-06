@@ -243,7 +243,7 @@ int main() {
 		lcd_send_data(MARIO[i]);
 	}
 
-	int movement_offset = 0;
+	int col_offset = 0;
 	unsigned int start_col = 1;
 	unsigned int start_row = 1;
 	bool delete_prev = false;
@@ -274,15 +274,18 @@ int main() {
 		{
 			face_right = false;
 		}	
-		else
+		else if (pressed_button == BUTTON_RIGHT)
 		{
 			face_right = true;
+		} else 
+		{
+			continue;
 		}
 
 
 		// POSITION UPDATE
 		// Update movement offset and start column
-		if (movement_offset == 4 && face_right){
+		if (col_offset == 4 && face_right){
 			start_col += 1;
 
 			delete_prev = true;
@@ -291,24 +294,24 @@ int main() {
 			int addr = start_row ? DD_RAM_ADDR2 : DD_RAM_ADDR;
 			lcd_send_command(addr + start_col - 1);
 			lcd_send_data(EMPTY_CHAR);
-		} else if (movement_offset == 0 && !face_right)
+		} else if (col_offset == 0 && !face_right)
 		{
 			start_col -= 1;
 			delete_prev = true;
 
-		} else if (movement_offset == 1 && !face_right)
+		} else if (col_offset == 1 && !face_right)
 		{
 			int addr = start_row ? DD_RAM_ADDR2 : DD_RAM_ADDR;
 			lcd_send_command(addr + start_col + 1);
 			lcd_send_data(EMPTY_CHAR);
 		}
 		
-		if (movement_offset == 0 && !face_right)
+		if (col_offset == 0 && !face_right)
 		{
-			movement_offset = 4;
+			col_offset = 4;
 		} else
 		{
-			movement_offset = (face_right ? (movement_offset + 1) : (movement_offset - 1)) % 5;
+			col_offset = (face_right ? (col_offset + 1) : (col_offset - 1)) % 5;
 		}
 
 
@@ -319,18 +322,18 @@ int main() {
 		for (int i = 0; i < 8; i++)
 		{
 			int start_index = face_right ? 0 : 8;
-			lcd_send_data(MARIO[start_index + i] >> movement_offset);
+			lcd_send_data(MARIO[start_index + i] >> col_offset);
 		}	
 		
 		// If offset is not 0, then the second character also should be updated.
-		if(movement_offset)
+		if(col_offset)
 		{
 			// Char 2
 			for (int i = 0; i < 8; i++)
 			{	
 				int start_index = face_right ? 0 : 8;
 				char temp = 0;
-				temp = MARIO[start_index + i] << (5 - movement_offset);
+				temp = MARIO[start_index + i] << (5 - col_offset);
 
 				lcd_send_data(temp);
 			}
@@ -352,7 +355,7 @@ int main() {
 					
 
 					MAP[i][j] = 0;
-					if (movement_offset){
+					if (col_offset){
 						MAP[i][j + 1] = 1;
 					} else
 					{
