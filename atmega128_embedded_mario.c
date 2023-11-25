@@ -304,7 +304,6 @@ int main() {
 	unsigned int start_col = 0;
 	unsigned int start_row = 1;
 
-	//bool delete_prev = false;
 	bool face_right = true;
 
 	unsigned int pressed_button = BUTTON_NONE;
@@ -337,12 +336,13 @@ int main() {
 
 
 		// Zero custom
-		lcd_send_command(CG_RAM_ADDR);
+
+		/*lcd_send_command(CG_RAM_ADDR);
 
 		for (int i = 0; i < 4*8; i++)
 		{
 			lcd_send_data(0);
-		}
+		}*/
 		
 
 
@@ -528,7 +528,6 @@ int main() {
 		// Update CGRAM
 		update_CG(CG_CONTENT);
 
-		//delete_prev = false;
 		button_unlock();
 	}
 
