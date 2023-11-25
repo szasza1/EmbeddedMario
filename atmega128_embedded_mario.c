@@ -337,25 +337,38 @@ int main() {
 
 		// Zero custom
 
-		/*lcd_send_command(CG_RAM_ADDR);
+		lcd_send_command(CG_RAM_ADDR);
 
 		for (int i = 0; i < 4*8; i++)
 		{
 			lcd_send_data(0);
-		}*/
+		}
 		
-
 
 		// Process the input
 		if(pressed_button == BUTTON_LEFT)
 		{
 			face_right = false;
-			horizontal_movement = true;
+
+			if (col_offset == 0)
+			{
+				start_col -= 1;
+				col_offset = 4;
+			} else 
+			{
+				col_offset = (face_right ? (col_offset + 1) : (col_offset - 1)) % 5;
+			}
+
 		}	
 		else if (pressed_button == BUTTON_RIGHT)
 		{
 			face_right = true;
-			horizontal_movement = true;
+
+			if (col_offset == 4){
+				start_col += 1;
+			}
+
+			col_offset = (face_right ? (col_offset + 1) : (col_offset - 1)) % 5;
 		}
 		else if (pressed_button == BUTTON_UP)
 		{	
@@ -385,131 +398,53 @@ int main() {
 			continue;
 		}
 
-		// POSITION UPDATE
-		// Update movement offset and start column
-
-		if (horizontal_movement)
-		{
-
-			if (col_offset == 4 && face_right){
-				start_col += 1;
-				
-			}
-			
-			if (col_offset == 0 && !face_right)
-			{
-				start_col -= 1;
-				col_offset = 4;
-			}
-			else
-			{
-				col_offset = (face_right ? (col_offset + 1) : (col_offset - 1)) % 5;
-			}
-
-		}
-
 		for (int i = 0; i < (4*8); i++)
 		{
 			CG_CONTENT[i] = 0;
 		}
 		
 
-
 		// ***************LOWER LINE***************
 
 		if (start_row)
 		{
-			// Char 0
+			// Update char 0 and char 1
 			for (int i = 0; i < (8 - row_offset); i++)
 			{
 				int start_index = face_right ? 0 : 8;
 				CG_CONTENT[i] = MARIO[start_index + i + row_offset] >> col_offset;
-			}	
-			for (int i = (8 - row_offset); i < 8; i++)
-			{
-				CG_CONTENT[i] = 0;
+				if (col_offset) CG_CONTENT[i + 8] = MARIO[start_index + i + row_offset] << (5 - col_offset);
 			}
-			
-			
-			// If offset is not 0, then the second character also should be updated.
-			if(col_offset)
-			{
-				// Char 1
-				for (int i = 0; i < (8 - row_offset); i++)
-				{	
-					int start_index = face_right ? 0 : 8;
-					CG_CONTENT[i + 8] = MARIO[start_index + i + row_offset] << (5 - col_offset);
-				}
 
-				for (int i = (8 - row_offset); i < 8; i++)
-				{	
-					CG_CONTENT[i + 8] = 0;
-				}
-				
-			}
 		}
 
 		// ***************UPPER LINE***************
 
 		if (row_offset >= 1 || !start_row)	
 		{
-			
-
-			// Mario is in the upper region.
-			if (!start_row) // start_row = 0, the character is on the upper line
+			if (!start_row)
 			{	
-				// Char 2
+				// Update char 2 and char 3
 				for (int i = 0; i < (8 - row_offset); i++)
 				{
 					int start_index = face_right ? 0 : 8;
 					CG_CONTENT[i + 16] = MARIO[start_index + i + row_offset] >> col_offset;
+					if (col_offset) CG_CONTENT[i + 24] = MARIO[start_index + i + row_offset] << (5 - col_offset);
 				}
 
-				for (int i = (8 - row_offset); i < 8; i++)
-				{
-					CG_CONTENT[i + 16] = 0;
-				}
-
-
-				// Char 3
-				for (int i = 0; i < (8 - row_offset); i++)
-				{
-					int start_index = face_right ? 0 : 8;
-					CG_CONTENT[i + 24] = MARIO[start_index + i + row_offset] << (5 - col_offset);
-				}
-
-				for (int i = (8 - row_offset); i < 8; i++)
-				{
-					CG_CONTENT[i + 24] = 0;
-				}
 			}
 			else
 			{	
 				int cor = 8 - row_offset;
-				// Char2
-				for (int i = 0; i < (8 - row_offset); i++)
-				{
-					CG_CONTENT[i + 16] = 0;
-				}
 
 				for (int i = (8 - row_offset); i < 8; i++)
 				{
 					int start_index = face_right ? 0 : 8;
 					CG_CONTENT[i + 16] = MARIO[start_index + i - cor] >> col_offset;
+					if (col_offset) CG_CONTENT[i + 24] = MARIO[start_index + i - cor] << (5 - col_offset);
+					
 				}
 				
-				// Char3
-
-				for (int i = 0; i < (8 - row_offset); i++)
-				{
-					CG_CONTENT[i + 24] = 0;
-				}
-
-				for (int i = (8 - row_offset); i < 8; i++)
-				{
-					int start_index = face_right ? 0 : 8;
-					CG_CONTENT[i + 24] = MARIO[start_index + i - cor] << (5 - col_offset);
-				}
 			}
 		}
 		
