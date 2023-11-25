@@ -437,10 +437,18 @@ static void screen_update(){
 	}
 }
 
-static void update(unsigned int start_col){
+static void update(unsigned int start_col, unsigned int col_offset){
 	// Update map's encoding matrix
 	update_map(start_col);
 
+	if(!col_offset) {
+		lcd_send_command(CG_RAM_ADDR + 8);
+		for (int i = 0; i < 8; i++)
+		{
+			lcd_send_data(0);
+		}
+	}
+	
 	// Update DDRAM
 	screen_update();
 
@@ -493,27 +501,27 @@ int main() {
 		{
 			update_position(MARIO_LEFT, &col_offset, &row_offset, &start_col, &start_row, &face_right);
 			update_mario_buffer(col_offset, row_offset, start_col, start_row, face_right);
-			update(start_col);
+			update(start_col, col_offset);
 		}	
 		else if (action == A_RIGHT)
 		{
 			update_position(MARIO_RIGHT, &col_offset, &row_offset, &start_col, &start_row, &face_right);
 			update_mario_buffer(col_offset, row_offset, start_col, start_row, face_right);
-			update(start_col);
+			update(start_col, col_offset);
 		}
 		else if (action == A_JUMP) {
 			for (int i = 0; i < 8; i++)
 			{
 				update_position(MARIO_UP, &col_offset, &row_offset, &start_col, &start_row, &face_right);
 				update_mario_buffer(col_offset, row_offset, start_col, start_row, face_right);
-				update(start_col);
+				update(start_col, col_offset);
 			}
 
 			for (int i = 0; i < 8; i++)
 			{
 				update_position(MARIO_DOWN, &col_offset, &row_offset, &start_col, &start_row, &face_right);
 				update_mario_buffer(col_offset, row_offset, start_col, start_row, face_right);
-				update(start_col);
+				update(start_col, col_offset);
 			}
 			
 		}
