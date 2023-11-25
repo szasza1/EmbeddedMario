@@ -202,6 +202,18 @@ static void screen_update(unsigned char *map){
 	}
 }
 
+static void update_CG(unsigned char *cg_content){
+	lcd_send_command(CG_RAM_ADDR);
+
+	for (int i = 0; i < (4*8); i++)
+	{
+		lcd_send_data(cg_content[i]);
+	}
+	
+}
+
+
+
 #define EMPTY_CHAR ' '
 
 static void clean_map(unsigned char *map){
@@ -209,11 +221,10 @@ static void clean_map(unsigned char *map){
 	{
 		map[i] = EMPTY_CHAR;
 	}
-	
 }
 
 static char MARIO[] = {
-	// Race right
+	// Race right 
 	0b00000,
 	0b00000,
 	0b01100,
@@ -233,7 +244,47 @@ static char MARIO[] = {
 	0b11011,
 };
 
-// Character map
+static char CG_CONTENT[] = {
+	// Char 0
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	// Char 1
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	// Char 2
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	// Char 3
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+};
+
+
+// CG map
 // 2 3
 // 0 1
 
@@ -246,25 +297,26 @@ int main() {
 	port_init();
 	lcd_init();
 	
-	// Init CGRAM
-	lcd_send_command(CG_RAM_ADDR);
-	for (int i = 0; i < 8; i++)
-	{
-		lcd_send_data(MARIO[i]);
-	}
-
+	
 	int col_offset = 0;
 	int row_offset = 0;
 
 	unsigned int start_col = 0;
 	unsigned int start_row = 1;
 
-	bool delete_prev = false;
+	//bool delete_prev = false;
 	bool face_right = true;
 
 	unsigned int pressed_button = BUTTON_NONE;
 
 	bool horizontal_movement = false;
+
+	// Init CGRAM
+	lcd_send_command(CG_RAM_ADDR);
+	for (int i = 0; i < 8; i++)
+	{
+		lcd_send_data(MARIO[i]);
+	}
 
 	int addr = start_row ? DD_RAM_ADDR2 : DD_RAM_ADDR;
 	lcd_send_command(addr + start_col);
@@ -341,6 +393,7 @@ int main() {
 
 			if (col_offset == 4 && face_right){
 				start_col += 1;
+				
 			}
 			
 			if (col_offset == 0 && !face_right)
@@ -355,10 +408,14 @@ int main() {
 
 		}
 
-		// ************** Update CGRAM ************
+		for (int i = 0; i < (4*8); i++)
+		{
+			CG_CONTENT[i] = 0;
+		}
+		
+
 
 		// ***************LOWER LINE***************
-		lcd_send_command(CG_RAM_ADDR);
 
 		if (start_row)
 		{
@@ -366,11 +423,11 @@ int main() {
 			for (int i = 0; i < (8 - row_offset); i++)
 			{
 				int start_index = face_right ? 0 : 8;
-				lcd_send_data(MARIO[start_index + i + row_offset] >> col_offset);
+				CG_CONTENT[i] = MARIO[start_index + i + row_offset] >> col_offset;
 			}	
-			for (int i = 0; i < row_offset; i++)
+			for (int i = (8 - row_offset); i < 8; i++)
 			{
-				lcd_send_data(0);
+				CG_CONTENT[i] = 0;
 			}
 			
 			
@@ -381,80 +438,81 @@ int main() {
 				for (int i = 0; i < (8 - row_offset); i++)
 				{	
 					int start_index = face_right ? 0 : 8;
-					char temp = 0;
-					temp = MARIO[start_index + i + row_offset] << (5 - col_offset);
-
-					lcd_send_data(temp);
+					CG_CONTENT[i + 8] = MARIO[start_index + i + row_offset] << (5 - col_offset);
 				}
 
-				for (int i = 0; i < row_offset; i++)
-				{
-					lcd_send_data(0);
+				for (int i = (8 - row_offset); i < 8; i++)
+				{	
+					CG_CONTENT[i + 8] = 0;
 				}
 				
 			}
 		}
 
 		// ***************UPPER LINE***************
-		// If the row offset is greather than 2, or we are standing on the upper line with 0 offset.
-		if (row_offset >= 3 || !start_row)	
+
+		if (row_offset >= 1 || !start_row)	
 		{
 			
-			// Char 2 start position
-			lcd_send_command(CG_RAM_ADDR + 16);
 
 			// Mario is in the upper region.
-			if (row_offset <= 2)
+			if (!start_row) // start_row = 0, the character is on the upper line
 			{	
 				// Char 2
-				for (int i = 0; i < 8; i++)
+				for (int i = 0; i < (8 - row_offset); i++)
 				{
 					int start_index = face_right ? 0 : 8;
-					lcd_send_data(MARIO[start_index + i] >> col_offset);
+					CG_CONTENT[i + 16] = MARIO[start_index + i + row_offset] >> col_offset;
 				}
 
+				for (int i = (8 - row_offset); i < 8; i++)
+				{
+					CG_CONTENT[i + 16] = 0;
+				}
+
+
 				// Char 3
-				for (int i = 0; i < 8; i++)
+				for (int i = 0; i < (8 - row_offset); i++)
 				{
 					int start_index = face_right ? 0 : 8;
-					char temp = 0;
-					temp = MARIO[start_index + i] << (5 - col_offset);
+					CG_CONTENT[i + 24] = MARIO[start_index + i + row_offset] << (5 - col_offset);
+				}
 
-					lcd_send_data(temp);
+				for (int i = (8 - row_offset); i < 8; i++)
+				{
+					CG_CONTENT[i + 24] = 0;
 				}
 			}
 			else
 			{	
-				// Char 2
+				int cor = 8 - row_offset;
+				// Char2
 				for (int i = 0; i < (8 - row_offset); i++)
 				{
-					lcd_send_data(0);
+					CG_CONTENT[i + 16] = 0;
 				}
 
-				for (int i = 0; i < row_offset; i++)
+				for (int i = (8 - row_offset); i < 8; i++)
 				{
 					int start_index = face_right ? 0 : 8;
-					lcd_send_data(MARIO[start_index + i] >> col_offset);
+					CG_CONTENT[i + 16] = MARIO[start_index + i - cor] >> col_offset;
 				}
+				
+				// Char3
 
-
-				// Char 3
 				for (int i = 0; i < (8 - row_offset); i++)
 				{
-					lcd_send_data(0);
+					CG_CONTENT[i + 24] = 0;
 				}
 
-				for (int i = 0; i < row_offset; i++)
+				for (int i = (8 - row_offset); i < 8; i++)
 				{
 					int start_index = face_right ? 0 : 8;
-					char temp = 0;
-					temp = MARIO[start_index + i] << (5 - col_offset);
-
-					lcd_send_data(temp);
+					CG_CONTENT[i + 24] = MARIO[start_index + i - cor] << (5 - col_offset);
 				}
 			}
 		}
-
+		
 		// Update map's encoding matrix
 		clean_map(MAP);
 
@@ -464,12 +522,13 @@ int main() {
 		MAP[1][start_col + 1] = 1;
 		
 
-
-
 		// Update DDRAM
 		screen_update(MAP);
 
-		delete_prev = false;
+		// Update CGRAM
+		update_CG(CG_CONTENT);
+
+		//delete_prev = false;
 		button_unlock();
 	}
 
