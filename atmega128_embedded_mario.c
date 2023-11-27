@@ -278,6 +278,42 @@ static char CG_CONTENT[] = {
 	0b00000,
 	0b00000,
 	0b00000,
+	// Char 4
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	// Char 5
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	// Char 6
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	// Char 7
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
 };
 
 static void update_CG(){
@@ -295,6 +331,7 @@ static void update_CG(){
 #define MARIO_RIGHT 1
 #define MARIO_UP 2
 #define MARIO_DOWN 3
+
 
 static void update_mario_buffer(unsigned int col_offset, unsigned int row_offset, unsigned int start_col, unsigned int start_row, bool face_right){
 	for (int i = 0; i < (4*8); i++)
@@ -348,6 +385,8 @@ static void update_mario_buffer(unsigned int col_offset, unsigned int row_offset
 }
 
 
+
+// // Itt kell megnezni, hogy az adott lepes ervenyes-e? Collision
 static void update_position(int mode, unsigned int* col_offset, unsigned int* row_offset, unsigned int* start_col, unsigned int* start_row, bool* face_right) {
 	switch (mode)
 	{
@@ -397,6 +436,7 @@ static void update_position(int mode, unsigned int* col_offset, unsigned int* ro
 	}
 }
 
+
 // CG map
 // 2 3
 // 0 1
@@ -441,8 +481,15 @@ static void update(unsigned int start_col, unsigned int col_offset){
 	// Update map's encoding matrix
 	update_map(start_col);
 
+	// A vibralas itt javithato
 	if(!col_offset) {
 		lcd_send_command(CG_RAM_ADDR + 8);
+		for (int i = 0; i < 8; i++)
+		{
+			lcd_send_data(0);
+		}
+
+		lcd_send_command(CG_RAM_ADDR + 24);
 		for (int i = 0; i < 8; i++)
 		{
 			lcd_send_data(0);
@@ -454,6 +501,29 @@ static void update(unsigned int start_col, unsigned int col_offset){
 
 	// Update CGRAM
 	update_CG();
+}
+
+static void move_m(int mode, unsigned int* col_offset, unsigned int* row_offset, unsigned int* start_col, unsigned int* start_row, bool* face_right){
+	update_position(mode, col_offset, row_offset, start_col, start_row, face_right);
+	update_mario_buffer((*col_offset), (*row_offset), (*start_col), (*start_row), (*face_right));
+	update((*start_col), (*col_offset));
+}
+
+static void rep_move(int move_count, int mode, unsigned int* col_offset, unsigned int* row_offset, unsigned int* start_col, unsigned int* start_row, bool* face_right){
+	for (int i = 0; i < move_count; i++)
+	{
+		move_m(mode, col_offset, row_offset, start_col, start_row, face_right);
+	}
+}
+
+static void shifted_jump(int mode, unsigned int* col_offset, unsigned int* row_offset, unsigned int* start_col, unsigned int* start_row, bool* face_right){
+	rep_move(7, MARIO_UP, col_offset, row_offset, start_col, start_row, face_right);
+	rep_move(2, mode, col_offset, row_offset, start_col, start_row, face_right);
+	move_m(MARIO_UP, col_offset, row_offset, start_col, start_row, face_right);
+	rep_move(2, mode, col_offset, row_offset, start_col, start_row, face_right);
+	move_m(MARIO_DOWN, col_offset, row_offset, start_col, start_row, face_right);
+	move_m(mode, col_offset, row_offset, start_col, start_row, face_right);
+	rep_move(7, MARIO_DOWN, col_offset, row_offset, start_col, start_row, face_right);
 }
 
 int main() {
@@ -495,41 +565,24 @@ int main() {
 		} while (action == A_NONE);
 		
 		
-
 		// Process the input
 		if(action == A_LEFT)
-		{
-			update_position(MARIO_LEFT, &col_offset, &row_offset, &start_col, &start_row, &face_right);
-			update_mario_buffer(col_offset, row_offset, start_col, start_row, face_right);
-			update(start_col, col_offset);
+		{	
+			move_m(MARIO_LEFT, &col_offset, &row_offset, &start_col, &start_row, &face_right);
 		}	
 		else if (action == A_RIGHT)
 		{
-			update_position(MARIO_RIGHT, &col_offset, &row_offset, &start_col, &start_row, &face_right);
-			update_mario_buffer(col_offset, row_offset, start_col, start_row, face_right);
-			update(start_col, col_offset);
+			move_m(MARIO_RIGHT, &col_offset, &row_offset, &start_col, &start_row, &face_right);
 		}
 		else if (action == A_JUMP) {
-			for (int i = 0; i < 8; i++)
-			{
-				update_position(MARIO_UP, &col_offset, &row_offset, &start_col, &start_row, &face_right);
-				update_mario_buffer(col_offset, row_offset, start_col, start_row, face_right);
-				update(start_col, col_offset);
-			}
-
-			for (int i = 0; i < 8; i++)
-			{
-				update_position(MARIO_DOWN, &col_offset, &row_offset, &start_col, &start_row, &face_right);
-				update_mario_buffer(col_offset, row_offset, start_col, start_row, face_right);
-				update(start_col, col_offset);
-			}
-			
+			rep_move(8, MARIO_UP, &col_offset, &row_offset, &start_col, &start_row, &face_right);
+			rep_move(8, MARIO_DOWN, &col_offset, &row_offset, &start_col, &start_row, &face_right);
 		}
 		else if (action == A_JUMP_R) {
-
+			shifted_jump(MARIO_RIGHT, &col_offset, &row_offset, &start_col, &start_row, &face_right);
 		}
 		else if (action == A_JUMP_L) {
-
+			shifted_jump(MARIO_LEFT, &col_offset, &row_offset, &start_col, &start_row, &face_right);
 		}
 
 	}
