@@ -548,6 +548,9 @@ int main() {
 
 	bool face_right = true;
 
+	bool jump = false;
+	unsigned int jump_off = 0;
+
 	unsigned int action = A_NONE;
 
 
@@ -567,12 +570,19 @@ int main() {
 	// Game Loop
 	while(1)
 	{	
-		// Waiting for the next input
-		do
+		action = is_pressed();
+
+		if (jump)
 		{
-			action = is_pressed();
-		} while (action == A_NONE);
-		
+			jump_off += 1;
+			unsigned int mode = (jump_off <= 8) ? MARIO_UP : MARIO_DOWN;
+
+			move_m(mode, &col_offset, &row_offset, &start_col, &start_row, &face_right);
+
+			jump = (jump_off == 16) ? false : true;
+
+			jump_off = jump ? jump_off : 0;
+		}
 		
 		// Process the input
 		if(action == A_LEFT)
@@ -583,17 +593,11 @@ int main() {
 		{
 			move_m(MARIO_RIGHT, &col_offset, &row_offset, &start_col, &start_row, &face_right);
 		}
-		else if (action == A_JUMP) {
-			rep_move(8, MARIO_UP, &col_offset, &row_offset, &start_col, &start_row, &face_right);
-			rep_move(8, MARIO_DOWN, &col_offset, &row_offset, &start_col, &start_row, &face_right);
+		else if (action == A_JUMP && (!jump)) {
+			jump = true;
+			jump_off += 1;
+			move_m(MARIO_UP, &col_offset, &row_offset, &start_col, &start_row, &face_right);
 		}
-		else if (action == A_JUMP_R) {
-			shifted_jump(MARIO_RIGHT, &col_offset, &row_offset, &start_col, &start_row, &face_right);
-		}
-		else if (action == A_JUMP_L) {
-			shifted_jump(MARIO_LEFT, &col_offset, &row_offset, &start_col, &start_row, &face_right);
-		}
-
 	}
 		
 }
