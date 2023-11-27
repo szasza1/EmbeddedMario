@@ -239,6 +239,15 @@ static char MARIO[] = {
 	0b11111,
 	0b01010,
 	0b11011,
+	// Object
+	0b00000,
+	0b00000,
+	0b00000,
+	0b11111,
+	0b11111,
+	0b01110,
+	0b01110,
+	0b01110,
 };
 
 static char CG_CONTENT[] = {
