@@ -239,7 +239,7 @@ static char MARIO[] = {
 	0b11111,
 	0b01010,
 	0b11011,
-	// Object
+	// Platform 1
 	0b00000,
 	0b00000,
 	0b00000,
@@ -251,7 +251,7 @@ static char MARIO[] = {
 };
 
 static char CG_CONTENT[] = {
-	// Char 0
+	// Char 0 (Mario)
 	0b00000,
 	0b00000,
 	0b00000,
@@ -260,7 +260,7 @@ static char CG_CONTENT[] = {
 	0b00000,
 	0b00000,
 	0b00000,
-	// Char 1
+	// Char 1 (Mario)
 	0b00000,
 	0b00000,
 	0b00000,
@@ -269,7 +269,7 @@ static char CG_CONTENT[] = {
 	0b00000,
 	0b00000,
 	0b00000,
-	// Char 2
+	// Char 2 (Mario)
 	0b00000,
 	0b00000,
 	0b00000,
@@ -278,7 +278,7 @@ static char CG_CONTENT[] = {
 	0b00000,
 	0b00000,
 	0b00000,
-	// Char 3
+	// Char 3 (Mario)
 	0b00000,
 	0b00000,
 	0b00000,
@@ -328,11 +328,10 @@ static char CG_CONTENT[] = {
 static void update_CG(){
 	lcd_send_command(CG_RAM_ADDR);
 
-	for (int i = 0; i < (4*8); i++)
+	for (int i = 0; i < 64; i++)
 	{
 		lcd_send_data(CG_CONTENT[i]);
 	}
-	
 }
 
 
@@ -450,17 +449,80 @@ static void update_position(int mode, unsigned int* col_offset, unsigned int* ro
 // 2 3
 // 0 1
 
+// LEVEL  ID:
+// 0: Mario
+// 2: Platform 1
+// 3: Mushroom
+static unsigned char LEVEL_DESC[4][16] = {
+	//Level 1
+	{' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '},
+	{0 ,' ',' ',' ', ' ' ,' ',' ',' ',' ',' ',2,' ',' ', ' ',' ',' '},
+	//Level 2
+	{' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '},
+	{0 ,' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '}
+};
+
+// Level object ids are in increasing order.
+static unsigned char LEVEL_OBJECTS[2][4] = {
+	{2,0,0,0}, //Level 1
+	{0,0,0,0}  //Level 2
+};
+
 static unsigned char MAP[2][16] = {
 	{' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '},
 	{' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '}
 };
+
+static void load_level(unsigned int akt_level){
+	for (int i = 0; i < 2; i++)
+	{
+		for (int j = 0; j < 16; j++)
+		{	
+			if (!LEVEL_DESC[akt_level + i][j] || LEVEL_DESC[akt_level + i][j] == ' '){
+
+				MAP[i][j] = LEVEL_DESC[akt_level + i][j];
+
+			} else {
+				
+				for (int z = 0; z < 4; z++)
+				{
+					if (LEVEL_OBJECTS[akt_level][z] == LEVEL_DESC[akt_level + i][j]) { MAP[i][j] = 4 + z;} 
+				}
+
+			}
+			
+		}
+		
+	}
+}
+
+static void init_CG_CONTENT(unsigned int akt_level){
+	// Mario
+	for (int i = 0; i < 8; i++)
+	{
+		CG_CONTENT[i] = MARIO[i];
+	}
+
+	// CGRAM 5
+	int cg_index = 32;
+	for (int i = 0; i < 4; i++)
+	{
+		if (LEVEL_OBJECTS[akt_level][i]){
+
+			for (int j = 0; j < 8; j++)
+			{
+				CG_CONTENT[cg_index++] = MARIO[ LEVEL_OBJECTS[akt_level][i] * 8 + j ];
+			}
+		}
+	}
+}
 
 static void update_map(unsigned int start_col){
 	for (int i = 0; i < 2; i++)
 	{
 		for (int j = 0; j < 16; j++)
 			{
-				MAP[i][j] = ' ';
+				if (MAP[i][j] <= 3) { MAP[i][j] = ' '; }
 			}
 	}
 
@@ -518,28 +580,11 @@ static void move_m(int mode, unsigned int* col_offset, unsigned int* row_offset,
 	update((*start_col), (*col_offset));
 }
 
-static void rep_move(int move_count, int mode, unsigned int* col_offset, unsigned int* row_offset, unsigned int* start_col, unsigned int* start_row, bool* face_right){
-	for (int i = 0; i < move_count; i++)
-	{
-		move_m(mode, col_offset, row_offset, start_col, start_row, face_right);
-	}
-}
-
-static void shifted_jump(int mode, unsigned int* col_offset, unsigned int* row_offset, unsigned int* start_col, unsigned int* start_row, bool* face_right){
-	rep_move(7, MARIO_UP, col_offset, row_offset, start_col, start_row, face_right);
-	rep_move(2, mode, col_offset, row_offset, start_col, start_row, face_right);
-	move_m(MARIO_UP, col_offset, row_offset, start_col, start_row, face_right);
-	rep_move(2, mode, col_offset, row_offset, start_col, start_row, face_right);
-	move_m(MARIO_DOWN, col_offset, row_offset, start_col, start_row, face_right);
-	move_m(mode, col_offset, row_offset, start_col, start_row, face_right);
-	rep_move(7, MARIO_DOWN, col_offset, row_offset, start_col, start_row, face_right);
-}
-
 int main() {
 	port_init();
 	lcd_init();
 	
-	
+	// Game variables
 	unsigned int col_offset = 0;
 	unsigned int row_offset = 0;
 
@@ -553,18 +598,14 @@ int main() {
 
 	unsigned int action = A_NONE;
 
+	unsigned int akt_level = 0;
 
-	// Init CGRAM
-	lcd_send_command(CG_RAM_ADDR);
-	for (int i = 0; i < 8; i++)
-	{
-		lcd_send_data(MARIO[i]);
-	}
+	// Initialization
+	load_level(akt_level);
+	init_CG_CONTENT(akt_level);
+	update_CG();
+	screen_update();
 
-	int addr = start_row ? DD_RAM_ADDR2 : DD_RAM_ADDR;
-	lcd_send_command(addr + start_col);
-
-	lcd_send_data(0);
 
 
 	// Game Loop
