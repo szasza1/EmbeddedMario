@@ -349,6 +349,9 @@ static unsigned int start_row = 1;
 
 static bool face_right = true;
 
+static bool jump = false;
+static unsigned int jump_off = 0;
+
 
 static void update_mario_buffer(){
 	for (int i = 0; i < (4*8); i++)
@@ -452,6 +455,12 @@ static void update_position(int mode){
 	}
 }
 
+static void update_position_n(int mode, int n){
+	for (int i = 0; i < n; i++)
+	{
+		update_position(mode);
+	}
+}
 
 // CG map
 // 2 3
@@ -582,8 +591,12 @@ static void update(){
 	update_CG();
 }
 
-static void move_m(int mode){ 
-	update_position(mode);
+static void move_m(int mode, int n){ 
+	if (n == 1) {
+		update_position(mode);	
+	} else {
+		update_position_n(mode, n);
+	}
 	update_mario_buffer(); 
 	update(); 
 }
@@ -594,10 +607,6 @@ int main() {
 	lcd_init();
 	
 	// Game variables
-
-	bool jump = false;
-	unsigned int jump_off = 0;
-
 	unsigned int action = A_NONE;
 
 	unsigned int akt_level = 0;
@@ -618,11 +627,22 @@ int main() {
 		if (jump)
 		{
 			jump_off += 1;
-			unsigned int mode = (jump_off <= 8) ? MARIO_UP : MARIO_DOWN;
+			unsigned int mode = 0;
+			unsigned int n = 1;
 
-			move_m(mode);
+			if (jump_off <= 4){
+				mode = MARIO_UP;
+				n = (jump_off <= 3) ? 2 : 1;
+			} else {
+				mode = MARIO_DOWN;
+				if (jump_off == 5) n = 1;
+				else if (jump_off <= 7) n = 2;
+				else n = 3;
+			}
 
-			jump = (jump_off == 16) ? false : true;
+			move_m(mode, n);
+
+			jump = (jump_off == 8) ? false : true;
 
 			jump_off = jump ? jump_off : 0;
 		}
@@ -630,16 +650,16 @@ int main() {
 		// Process the input
 		if(action == A_LEFT)
 		{	
-			move_m(MARIO_LEFT);
+			move_m(MARIO_LEFT, 2);
 		}	
 		else if (action == A_RIGHT)
 		{
-			move_m(MARIO_RIGHT);
+			move_m(MARIO_RIGHT, 2);
 		}
 		else if (action == A_JUMP && (!jump)) {
 			jump = true;
 			jump_off += 1;
-			move_m(MARIO_UP);
+			move_m(MARIO_UP, 3);
 		}
 	}
 		
