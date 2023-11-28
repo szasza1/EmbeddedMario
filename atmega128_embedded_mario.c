@@ -540,7 +540,7 @@ static void update_map(){
 	MAP[1][start_col + 1] = 1;
 }
 
-static void screen_update(){
+static void update_DD(){
 	// Update the first line
 	lcd_send_command(DD_RAM_ADDR);
 	for (int i = 0; i < 16; i++)
@@ -576,7 +576,7 @@ static void update(){
 	}
 	
 	// Update DDRAM
-	screen_update();
+	update_DD();
 
 	// Update CGRAM
 	update_CG();
@@ -606,7 +606,7 @@ int main() {
 	load_level(akt_level);
 	init_CG_CONTENT(akt_level);
 	update_CG();
-	screen_update();
+	update_DD();
 
 
 
