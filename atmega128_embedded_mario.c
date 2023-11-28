@@ -340,8 +340,17 @@ static void update_CG(){
 #define MARIO_UP 2
 #define MARIO_DOWN 3
 
+// Global variables
+static unsigned int col_offset = 0;
+static unsigned int row_offset = 0;
 
-static void update_mario_buffer(unsigned int col_offset, unsigned int row_offset, unsigned int start_col, unsigned int start_row, bool face_right){
+static unsigned int start_col = 0;
+static unsigned int start_row = 1;
+
+static bool face_right = true;
+
+
+static void update_mario_buffer(){
 	for (int i = 0; i < (4*8); i++)
 	{
 		CG_CONTENT[i] = 0;
@@ -393,50 +402,49 @@ static void update_mario_buffer(unsigned int col_offset, unsigned int row_offset
 }
 
 
-
-// // Itt kell megnezni, hogy az adott lepes ervenyes-e? Collision
-static void update_position(int mode, unsigned int* col_offset, unsigned int* row_offset, unsigned int* start_col, unsigned int* start_row, bool* face_right) {
+// Itt kell megnezni, hogy az adott lepes ervenyes-e? Collision
+static void update_position(int mode){
 	switch (mode)
 	{
 	case MARIO_RIGHT:
-		*face_right = true;
+		face_right = true;
 
-		if (*col_offset == 4){
-			*start_col += 1;
+		if (col_offset == 4){
+			start_col += 1;
 		}
 
-		*col_offset = (*face_right ? (*col_offset + 1) : (*col_offset - 1)) % 5;
+		col_offset = (face_right ? (col_offset + 1) : (col_offset - 1)) % 5;
 		break;
 	case MARIO_LEFT:
-		*face_right = false;
+		face_right = false;
 
-		if (*col_offset == 0)
+		if (col_offset == 0)
 		{
-			*start_col -= 1;
-			*col_offset = 4;
+			start_col -= 1;
+			col_offset = 4;
 		} else 
 		{
-			*col_offset = (*face_right ? (*col_offset + 1) : (*col_offset - 1)) % 5;
+			col_offset = (face_right ? (col_offset + 1) : (col_offset - 1)) % 5;
 		}
 		break;
 	case MARIO_UP:
-		if (*row_offset == 7)
+		if (row_offset == 7)
 		{
-			*start_row = 0;
+			start_row = 0;
 		}
 
-		*row_offset = (*row_offset + 1) % 8;
+		row_offset = (row_offset + 1) % 8;
 
 		break;
 	case MARIO_DOWN:
-		if (*row_offset == 0 && *start_row == 0)
+		if (row_offset == 0 && start_row == 0)
 		{
-			*row_offset = 7;
-			*start_row = 1;
+			row_offset = 7;
+			start_row = 1;
 		}
 		else
 		{
-			*row_offset -= 1;
+			row_offset -= 1;
 		}
 		break;
 	default:
@@ -517,7 +525,7 @@ static void init_CG_CONTENT(unsigned int akt_level){
 	}
 }
 
-static void update_map(unsigned int start_col){
+static void update_map(){
 	for (int i = 0; i < 2; i++)
 	{
 		for (int j = 0; j < 16; j++)
@@ -548,9 +556,9 @@ static void screen_update(){
 	}
 }
 
-static void update(unsigned int start_col, unsigned int col_offset){
+static void update(){ 
 	// Update map's encoding matrix
-	update_map(start_col);
+	update_map(); 
 
 	// A vibralas itt javithato
 	if(!col_offset) {
@@ -574,24 +582,18 @@ static void update(unsigned int start_col, unsigned int col_offset){
 	update_CG();
 }
 
-static void move_m(int mode, unsigned int* col_offset, unsigned int* row_offset, unsigned int* start_col, unsigned int* start_row, bool* face_right){
-	update_position(mode, col_offset, row_offset, start_col, start_row, face_right);
-	update_mario_buffer((*col_offset), (*row_offset), (*start_col), (*start_row), (*face_right));
-	update((*start_col), (*col_offset));
+static void move_m(int mode){ 
+	update_position(mode);
+	update_mario_buffer(); 
+	update(); 
 }
+
 
 int main() {
 	port_init();
 	lcd_init();
 	
 	// Game variables
-	unsigned int col_offset = 0;
-	unsigned int row_offset = 0;
-
-	unsigned int start_col = 0;
-	unsigned int start_row = 1;
-
-	bool face_right = true;
 
 	bool jump = false;
 	unsigned int jump_off = 0;
@@ -618,7 +620,7 @@ int main() {
 			jump_off += 1;
 			unsigned int mode = (jump_off <= 8) ? MARIO_UP : MARIO_DOWN;
 
-			move_m(mode, &col_offset, &row_offset, &start_col, &start_row, &face_right);
+			move_m(mode);
 
 			jump = (jump_off == 16) ? false : true;
 
@@ -628,16 +630,16 @@ int main() {
 		// Process the input
 		if(action == A_LEFT)
 		{	
-			move_m(MARIO_LEFT, &col_offset, &row_offset, &start_col, &start_row, &face_right);
+			move_m(MARIO_LEFT);
 		}	
 		else if (action == A_RIGHT)
 		{
-			move_m(MARIO_RIGHT, &col_offset, &row_offset, &start_col, &start_row, &face_right);
+			move_m(MARIO_RIGHT);
 		}
 		else if (action == A_JUMP && (!jump)) {
 			jump = true;
 			jump_off += 1;
-			move_m(MARIO_UP, &col_offset, &row_offset, &start_col, &start_row, &face_right);
+			move_m(MARIO_UP);
 		}
 	}
 		
