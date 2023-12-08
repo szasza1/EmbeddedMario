@@ -798,7 +798,7 @@ static void update(){
 	update_map(); 
 
 	// A vibralas itt javithato
-	if(!col_offset) {
+	/*if(!col_offset) {
 		lcd_send_command(CG_RAM_ADDR + 8);
 		for (int i = 0; i < 8; i++)
 		{
@@ -810,7 +810,7 @@ static void update(){
 		{
 			lcd_send_data(0);
 		}
-	}
+	}*/
 	
 	// Update DDRAM
 	update_DD();
