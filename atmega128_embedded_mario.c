@@ -357,7 +357,7 @@ static unsigned char MAP[2][16] = {
 static void update_CG(){
 	lcd_send_command(CG_RAM_ADDR);
 
-	for (int i = 0; i < 64; i++)
+	for (int i = 0; i < 32; i++)
 	{
 		lcd_send_data(CG_CONTENT[i]);
 	}
@@ -734,9 +734,11 @@ static void init_CG_CONTENT(unsigned int akt_level){
 	}
 }
 
-static void update_map(){
+static int update_map(){
 	
-	if(MAP[1][start_col] == 0) return; 	// The CG positions are not changed.
+	if(MAP[1][start_col] == 0) return 0; 	// The CG positions are not changed.
+
+	bool shift_mode = 0;
 
 	if(MAP[1][start_col] == 1) {		// Right shift.
 
@@ -753,6 +755,7 @@ static void update_map(){
 			if (LEVEL_OBJECTS[akt_level][z] == obj_id_1) { MAP[1][start_col - 1] = 4 + z;}
 		}
 		
+		shift_mode = 1;
 	} else {							// Left shift.
 
 		int obj_id_0 = LEVEL_DESC[akt_level][start_col + 2];
@@ -767,7 +770,7 @@ static void update_map(){
 			if (LEVEL_OBJECTS[akt_level][z] == obj_id_0) { MAP[0][start_col + 2] = 4 + z;}
 			if (LEVEL_OBJECTS[akt_level][z] == obj_id_1) { MAP[1][start_col + 2] = 4 + z;}
 		}
-		
+		shift_mode = 2;
 	}
 
 	MAP[0][start_col] = 2;
@@ -775,11 +778,12 @@ static void update_map(){
 	MAP[1][start_col] = 0;
 	MAP[1][start_col + 1] = 1;
 
+	return shift_mode;
 }
 
-static void update_DD(){
+static void update_DD(int shift_mode){
 	// Update the first line
-	lcd_send_command(DD_RAM_ADDR);
+	/*lcd_send_command(DD_RAM_ADDR);
 	for (int i = 0; i < 16; i++)
 	{
 		lcd_send_data(MAP[0][i]);
@@ -790,15 +794,39 @@ static void update_DD(){
 	for (int i = 0; i < 16; i++)
 	{
 		lcd_send_data(MAP[1][i]);
+	}*/
+
+	if(shift_mode == 1) { // Right shift
+		lcd_send_command(DD_RAM_ADDR2 + (start_col - 1));
+		lcd_send_data(MAP[1][start_col - 1]);
+		lcd_send_data(MAP[1][start_col]);
+		lcd_send_data(MAP[1][start_col + 1]);
+
+		lcd_send_command(DD_RAM_ADDR + (start_col - 1));
+		lcd_send_data(MAP[0][start_col - 1]);
+		lcd_send_data(MAP[0][start_col]);
+		lcd_send_data(MAP[0][start_col + 1]);
+
+	} else {
+		lcd_send_command(DD_RAM_ADDR2 + start_col);
+		lcd_send_data(MAP[1][start_col]);
+		lcd_send_data(MAP[1][start_col + 1]);
+		lcd_send_data(MAP[1][start_col + 2]);
+
+		lcd_send_command(DD_RAM_ADDR + start_col);
+		lcd_send_data(MAP[0][start_col]);
+		lcd_send_data(MAP[0][start_col + 1]);
+		lcd_send_data(MAP[0][start_col + 2]);
 	}
+
 }
 
 static void update(){ 
 	// Update map's encoding matrix
-	update_map(); 
+	int shift_mode = update_map(); 
 
 	// A vibralas itt javithato
-	/*if(!col_offset) {
+	if(!col_offset) {
 		lcd_send_command(CG_RAM_ADDR + 8);
 		for (int i = 0; i < 8; i++)
 		{
@@ -810,13 +838,14 @@ static void update(){
 		{
 			lcd_send_data(0);
 		}
-	}*/
+	}
 	
-	// Update DDRAM
-	update_DD();
-
 	// Update CGRAM
 	update_CG();
+
+	update_DD(shift_mode);
+	
+
 }
 
 static void move_m(int mode, int n){ 
@@ -840,8 +869,28 @@ int main() {
 	// Initialization
 	load_level(akt_level);
 	init_CG_CONTENT(akt_level);
-	update_CG();
-	update_DD();
+
+	// update_CG();
+	lcd_send_command(CG_RAM_ADDR);
+
+	for (int i = 0; i < 64; i++)
+	{
+		lcd_send_data(CG_CONTENT[i]);
+	}
+
+	// update_DD();
+	lcd_send_command(DD_RAM_ADDR);
+	for (int i = 0; i < 16; i++)
+	{
+		lcd_send_data(MAP[0][i]);
+	}
+
+	// Update the second line
+	lcd_send_command(DD_RAM_ADDR2);
+	for (int i = 0; i < 16; i++)
+	{
+		lcd_send_data(MAP[1][i]);
+	}
 
 
 
@@ -893,6 +942,7 @@ int main() {
 			jump_off += 1;
 			move_m(MARIO_UP, 3);
 		}
+				
 	}
 		
 }
