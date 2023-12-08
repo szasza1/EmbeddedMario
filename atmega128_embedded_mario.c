@@ -665,24 +665,8 @@ static void init_CG_CONTENT(unsigned int akt_level){
 }
 
 static void update_map(){
-
-	/*
-	for (int i = 0; i < 2; i++)
-	{
-		for (int j = 0; j < 16; j++)
-			{
-				if (MAP[i][j] <= 3) { MAP[i][j] = ' '; }
-			}
-	}
-
-	MAP[0][start_col] = 2;
-	MAP[0][start_col + 1] = 3;
-	MAP[1][start_col] = 0;
-	MAP[1][start_col + 1] = 1;
-	*/
 	
 	if(MAP[1][start_col] == 0) return; 	// The CG positions are not changed.
-
 
 	if(MAP[1][start_col] == 1) {		// Right shift.
 
