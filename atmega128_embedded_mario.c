@@ -379,7 +379,9 @@ static unsigned int start_row = 1;
 static bool face_right = true;
 
 static bool jump = false;
+static bool fall = false;
 static unsigned int jump_off = 0;
+static unsigned int fall_off = 0;
 
 static unsigned int akt_level = 0; // Should be increased by 2!
 
@@ -485,10 +487,47 @@ static bool check_pixel(char src, int offset) {
 	default:
 		break;
 	}
-
 }
 
+static bool check_left_pixel(char src, int offset) {
+	switch (offset)
+	{
+	case 1:
+		return (0b01111 & src);
+		break;
+	case 2:
+		return (0b00111 & src);
+		break;
+	case 3:
+		return (0b00011 & src);
+		break;
+	case 4:
+		return (0b00001 & src);
+		break;
+	default:
+		break;
+	}
+}
 
+static bool check_right_pixel(char src, int offset) {
+	switch (offset)
+	{
+	case 1:
+		return (0b10000 & src);
+		break;
+	case 2:
+		return (0b11000 & src);
+		break;
+	case 3:
+		return (0b11100 & src);
+		break;
+	case 4:
+		return (0b11110 & src);
+		break;
+	default:
+		break;
+	}
+}
 
 // -1: Nincs utkozes
 // 0: Ervenytelen lepes
@@ -497,11 +536,15 @@ static int collide(int mode) {
 	switch (mode)
 	{
 	case MARIO_RIGHT: 
-	{
+	{	
+		if (collide(MARIO_DOWN) == -1) {
+			fall = true;
+		}
+
 		int obj_id = LEVEL_DESC[akt_level + start_row][start_col + 1]; // 2
 		
 		// detection
-		if (obj_id >= 2){
+		if (obj_id == 2){
 			for (int i = row_offset; i < 8; i++)
 			{
 				if ( check_pixel(MARIO[(obj_id + 1) * 8 - 1 - i], col_offset) ) return obj_id;
@@ -510,7 +553,11 @@ static int collide(int mode) {
 		break;
 	}
 	case MARIO_LEFT:
-	{
+	{	
+		if (collide(MARIO_DOWN) == -1) {
+			fall = true;
+		}
+
 		if (start_col == 0 && col_offset == 0 && akt_level == 0) return 0; //invalid movement
 
 		int temp_c_start = col_offset ? start_col : start_col - 1;
@@ -519,7 +566,7 @@ static int collide(int mode) {
 		int obj_id = LEVEL_DESC[akt_level + start_row][temp_c_start];
 
 		// detection
-		if (obj_id >= 2){
+		if (obj_id == 2){
 			for (int i = row_offset; i < 8; i++)
 			{
 				if ( check_pixel(MARIO[(obj_id + 1) * 8 - 1 - i], (temp_c_off)) ) return obj_id;
@@ -537,7 +584,20 @@ static int collide(int mode) {
 		
 		int obj_id = LEVEL_DESC[akt_level + temp_r_start][start_col];
 
-		if ( MARIO[(obj_id + 1) * 8 - 1 - temp_r_off] != 0 ) return obj_id;
+		if (!col_offset && obj_id == 2 && MARIO[(obj_id + 1) * 8 - 1 - temp_r_off] != 0) return obj_id;
+
+		if (col_offset) {
+			int obj_id_2 = LEVEL_DESC[akt_level + temp_r_start][start_col + 1];
+
+			char left_base = obj_id == 2 ? MARIO[(obj_id + 1) * 8 - 1 - temp_r_off] : 0;
+			char right_base = obj_id_2 == 2 ? MARIO[(obj_id_2 + 1) * 8 - 1 - temp_r_off] : 0;
+
+			bool l_res = check_left_pixel(left_base, col_offset);
+			bool r_res = check_right_pixel(right_base, col_offset);
+
+			if (l_res) return obj_id;
+			if (r_res) return obj_id_2;
+		}
 
 	}
 	default:
@@ -587,7 +647,16 @@ static void update_position(int mode){
 
 		break;
 	case MARIO_DOWN:
-		if(collide(mode) != (-1)) return;
+	{	
+		int akt_collision = collide(mode);
+		if(akt_collision == 0) return;
+		if(akt_collision == 2) {
+			jump = false;
+			return;
+		}
+
+		
+		
 
 		if (row_offset == 0 && start_row == 0)
 		{
@@ -599,6 +668,7 @@ static void update_position(int mode){
 			row_offset -= 1;
 		}
 		break;
+	}
 	default:
 		break;
 	}
@@ -779,30 +849,36 @@ int main() {
 	while(1)
 	{	
 		action = is_pressed();
-
-		if (jump)
-		{
-			jump_off += 1;
-			unsigned int mode = 0;
-			unsigned int n = 1;
-
-			if (jump_off <= 4){
-				mode = MARIO_UP;
-				n = (jump_off <= 3) ? 2 : 1;
+		
+		
+		if (jump) {
+			if (jump_off <= 2){
+				jump_off ++;
+				move_m(MARIO_UP, 2);
 			} else {
-				mode = MARIO_DOWN;
-				if (jump_off == 5) n = 1;
-				else if (jump_off <= 7) n = 2;
-				else n = 3;
+				jump = false;
+				jump_off = 0;
+				fall = true;
+
+				move_m(MARIO_UP, 1);
+			}
+		}
+
+		if (fall) {
+			if(fall_off == 0) {
+				move_m(MARIO_DOWN, 1);
+				fall_off ++;
+			} else if (fall_off <= 2) {
+				move_m(MARIO_DOWN, 2);
+				fall_off ++;				
+			} else {
+				move_m(MARIO_DOWN, 3);
+				fall_off = 0;
+				fall = false;
 			}
 
-			move_m(mode, n);
-
-			jump = (jump_off == 8) ? false : true;
-
-			jump_off = jump ? jump_off : 0;
 		}
-		
+
 		// Process the input
 		if(action == A_LEFT)
 		{	
@@ -812,7 +888,7 @@ int main() {
 		{
 			move_m(MARIO_RIGHT, 2);
 		}
-		else if (action == A_JUMP && (!jump)) {
+		else if (action == A_JUMP && (!jump) && (!fall)) {
 			jump = true;
 			jump_off += 1;
 			move_m(MARIO_UP, 3);
