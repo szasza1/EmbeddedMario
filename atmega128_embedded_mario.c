@@ -325,6 +325,35 @@ static char CG_CONTENT[] = {
 	0b00000,
 };
 
+// CG map
+// 2 3
+// 0 1
+
+// LEVEL  ID:
+// 0: Mario
+// 2: Platform 1
+// 3: Mushroom
+static unsigned char LEVEL_DESC[4][16] = {
+	//Level 1
+	{' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '},
+	{' ' ,' ',' ',' ', ' ' ,' ',' ',' ',' ',' ',2,' ',' ', ' ',' ',' '},
+	//Level 2
+	{' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '},
+	{' ' ,' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '}
+};
+
+// Level object ids are in increasing order.
+static unsigned char LEVEL_OBJECTS[2][4] = {
+	{2,0,0,0}, //Level 1
+	{0,0,0,0}  //Level 2
+};
+
+static unsigned char MAP[2][16] = {
+	{' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '},
+	{' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '}
+};
+
+
 static void update_CG(){
 	lcd_send_command(CG_RAM_ADDR);
 
@@ -352,23 +381,49 @@ static bool face_right = true;
 static bool jump = false;
 static unsigned int jump_off = 0;
 
+static unsigned int akt_level = 0; // Should be increased by 2!
 
 static void update_mario_buffer(){
+
+	int obj_ids[4] = {
+		LEVEL_DESC[akt_level + 1][start_col],		//CG 0
+		LEVEL_DESC[akt_level + 1][start_col + 1],	//CG 1
+		LEVEL_DESC[akt_level][start_col],			//CG 2
+		LEVEL_DESC[akt_level][start_col + 1]		//CG 3
+	};
+
+	/*
 	for (int i = 0; i < (4*8); i++)
 	{
 		CG_CONTENT[i] = 0;
 	}
+	*/
+	for (int i = 0; i < 4; i++)
+	{
+		for (int j = 0; j < 8; j++)
+		{
+			if(obj_ids[i] >= 2) {
+				CG_CONTENT[i * 8 + j] = MARIO[obj_ids[i] * 8 + j];
+			} else {
+				CG_CONTENT[i * 8 + j] = 0;
+			}		
+		}
+		
+	}
+	
 		
 	// ***************LOWER LINE***************
 
 	if (start_row)
-	{
+	{	
 		// Update char 0 and char 1
 		for (int i = 0; i < (8 - row_offset); i++)
 		{
 			int start_index = face_right ? 0 : 8;
-			CG_CONTENT[i] = MARIO[start_index + i + row_offset] >> col_offset;
-			if (col_offset) CG_CONTENT[i + 8] = MARIO[start_index + i + row_offset] << (5 - col_offset);
+			// CG 0
+			CG_CONTENT[i] |= MARIO[start_index + i + row_offset] >> col_offset;
+			// CG 1
+			if (col_offset) CG_CONTENT[i + 8] |= MARIO[start_index + i + row_offset] << (5 - col_offset);
 		}
 
 	}
@@ -383,8 +438,10 @@ static void update_mario_buffer(){
 			for (int i = 0; i < (8 - row_offset); i++)
 			{
 				int start_index = face_right ? 0 : 8;
-				CG_CONTENT[i + 16] = MARIO[start_index + i + row_offset] >> col_offset;
-				if (col_offset) CG_CONTENT[i + 24] = MARIO[start_index + i + row_offset] << (5 - col_offset);
+				// CG 2
+				CG_CONTENT[i + 16] |= MARIO[start_index + i + row_offset] >> col_offset;
+				//CG 3
+				if (col_offset) CG_CONTENT[i + 24] |= MARIO[start_index + i + row_offset] << (5 - col_offset);
 			}
 
 		}
@@ -395,13 +452,99 @@ static void update_mario_buffer(){
 			for (int i = (8 - row_offset); i < 8; i++)
 			{
 				int start_index = face_right ? 0 : 8;
-				CG_CONTENT[i + 16] = MARIO[start_index + i - cor] >> col_offset;
-				if (col_offset) CG_CONTENT[i + 24] = MARIO[start_index + i - cor] << (5 - col_offset);
+				// CG 2
+				CG_CONTENT[i + 16] |= MARIO[start_index + i - cor] >> col_offset;
+				//CG 3
+				if (col_offset) CG_CONTENT[i + 24] |= MARIO[start_index + i - cor] << (5 - col_offset);
 				
 			}
 			
 		}
 	}
+}
+
+
+static bool check_pixel(char src, int offset) {
+	switch (offset)
+	{
+	case 0:
+		return (0b10000 & src);
+		break;
+	case 1:
+		return (0b01000 & src);
+		break;
+	case 2:
+		return (0b00100 & src);
+		break;
+	case 3:
+		return (0b00010 & src);
+		break;
+	case 4:
+		return (0b00001 & src);
+		break;
+	default:
+		break;
+	}
+
+}
+
+
+
+// -1: Nincs utkozes
+// 0: Ervenytelen lepes
+// >=2: Utkozott objektum ID
+static int collide(int mode) {
+	switch (mode)
+	{
+	case MARIO_RIGHT: 
+	{
+		int obj_id = LEVEL_DESC[akt_level + start_row][start_col + 1]; // 2
+		
+		// detection
+		if (obj_id >= 2){
+			for (int i = row_offset; i < 8; i++)
+			{
+				if ( check_pixel(MARIO[(obj_id + 1) * 8 - 1 - i], col_offset) ) return obj_id;
+			}
+		}
+		break;
+	}
+	case MARIO_LEFT:
+	{
+		if (start_col == 0 && col_offset == 0 && akt_level == 0) return 0; //invalid movement
+
+		int temp_c_start = col_offset ? start_col : start_col - 1;
+		int temp_c_off = col_offset ? col_offset - 1 : 4;
+
+		int obj_id = LEVEL_DESC[akt_level + start_row][temp_c_start];
+
+		// detection
+		if (obj_id >= 2){
+			for (int i = row_offset; i < 8; i++)
+			{
+				if ( check_pixel(MARIO[(obj_id + 1) * 8 - 1 - i], (temp_c_off)) ) return obj_id;
+			}
+		}
+		
+		break;
+	}
+	case MARIO_DOWN:
+	{
+		if(start_row && !row_offset) return 0; // start_row = 1 and row_offset == 0
+
+		int temp_r_start = row_offset ? start_row : 1; 
+		int temp_r_off = row_offset ? row_offset - 1 : 7;
+		
+		int obj_id = LEVEL_DESC[akt_level + temp_r_start][start_col];
+
+		if ( MARIO[(obj_id + 1) * 8 - 1 - temp_r_off] != 0 ) return obj_id;
+
+	}
+	default:
+		break;
+	}
+
+	return -1; // nincs collision
 }
 
 
@@ -412,6 +555,8 @@ static void update_position(int mode){
 	case MARIO_RIGHT:
 		face_right = true;
 
+		if(collide(mode) != (-1)) return;
+
 		if (col_offset == 4){
 			start_col += 1;
 		}
@@ -420,6 +565,8 @@ static void update_position(int mode){
 		break;
 	case MARIO_LEFT:
 		face_right = false;
+
+		if(collide(mode) != (-1)) return;
 
 		if (col_offset == 0)
 		{
@@ -440,6 +587,8 @@ static void update_position(int mode){
 
 		break;
 	case MARIO_DOWN:
+		if(collide(mode) != (-1)) return;
+
 		if (row_offset == 0 && start_row == 0)
 		{
 			row_offset = 7;
@@ -462,33 +611,6 @@ static void update_position_n(int mode, int n){
 	}
 }
 
-// CG map
-// 2 3
-// 0 1
-
-// LEVEL  ID:
-// 0: Mario
-// 2: Platform 1
-// 3: Mushroom
-static unsigned char LEVEL_DESC[4][16] = {
-	//Level 1
-	{' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '},
-	{0 ,' ',' ',' ', ' ' ,' ',' ',' ',' ',' ',2,' ',' ', ' ',' ',' '},
-	//Level 2
-	{' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '},
-	{0 ,' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '}
-};
-
-// Level object ids are in increasing order.
-static unsigned char LEVEL_OBJECTS[2][4] = {
-	{2,0,0,0}, //Level 1
-	{0,0,0,0}  //Level 2
-};
-
-static unsigned char MAP[2][16] = {
-	{' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '},
-	{' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '}
-};
 
 static void load_level(unsigned int akt_level){
 	for (int i = 0; i < 2; i++)
@@ -511,6 +633,14 @@ static void load_level(unsigned int akt_level){
 		}
 		
 	}
+
+	if (akt_level == 0){
+		MAP[0][start_col] = 2;
+		MAP[0][start_col + 1] = 3;
+		MAP[1][start_col] = 0;
+		MAP[1][start_col + 1] = 1;
+	}
+
 }
 
 static void init_CG_CONTENT(unsigned int akt_level){
@@ -535,6 +665,8 @@ static void init_CG_CONTENT(unsigned int akt_level){
 }
 
 static void update_map(){
+
+	/*
 	for (int i = 0; i < 2; i++)
 	{
 		for (int j = 0; j < 16; j++)
@@ -547,6 +679,48 @@ static void update_map(){
 	MAP[0][start_col + 1] = 3;
 	MAP[1][start_col] = 0;
 	MAP[1][start_col + 1] = 1;
+	*/
+	
+	if(MAP[1][start_col] == 0) return; 	// The CG positions are not changed.
+
+
+	if(MAP[1][start_col] == 1) {		// Right shift.
+
+		int obj_id_0 = LEVEL_DESC[akt_level][start_col - 1]; 
+		int obj_id_1 = LEVEL_DESC[akt_level + 1][start_col - 1]; 
+
+		MAP[0][start_col - 1] = ' ';  
+		MAP[1][start_col - 1] = ' ';
+
+		
+		for (int z = 0; z < 4; z++)
+		{
+			if (LEVEL_OBJECTS[akt_level][z] == obj_id_0) { MAP[0][start_col - 1] = 4 + z;}
+			if (LEVEL_OBJECTS[akt_level][z] == obj_id_1) { MAP[1][start_col - 1] = 4 + z;}
+		}
+		
+	} else {							// Left shift.
+
+		int obj_id_0 = LEVEL_DESC[akt_level][start_col + 2];
+		int obj_id_1 = LEVEL_DESC[akt_level + 1][start_col + 2];
+
+		MAP[0][start_col + 2] = ' ';  
+		MAP[1][start_col + 2] = ' ';
+
+		
+		for (int z = 0; z < 4; z++)
+		{
+			if (LEVEL_OBJECTS[akt_level][z] == obj_id_0) { MAP[0][start_col + 2] = 4 + z;}
+			if (LEVEL_OBJECTS[akt_level][z] == obj_id_1) { MAP[1][start_col + 2] = 4 + z;}
+		}
+		
+	}
+
+	MAP[0][start_col] = 2;
+	MAP[0][start_col + 1] = 3;
+	MAP[1][start_col] = 0;
+	MAP[1][start_col + 1] = 1;
+
 }
 
 static void update_DD(){
@@ -608,8 +782,6 @@ int main() {
 	
 	// Game variables
 	unsigned int action = A_NONE;
-
-	unsigned int akt_level = 0;
 
 	// Initialization
 	load_level(akt_level);
