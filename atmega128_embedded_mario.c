@@ -634,7 +634,14 @@ static void update_position(int mode){
 	case MARIO_RIGHT:
 		face_right = true;
 
-		if(collide(mode) != (-1)) return;
+		int akt_collision = collide(mode);
+		if (akt_collision == 0) return;
+
+		if (akt_collision == 2 || akt_collision == 4) return;
+		else if (akt_collision == 3 || akt_collision == 5) {
+			health --;
+		}
+		// if(collide(mode) != (-1)) return;
 
 		if (col_offset == 4){
 			start_col += 1;
