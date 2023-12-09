@@ -248,6 +248,37 @@ static char MARIO[] = {
 	0b01110,
 	0b01110,
 	0b01110,
+	// Enemy 1
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+};
+
+
+static char OBJECTS[] = {
+	// Platform 1
+	0b00000,
+	0b00000,
+	0b00000,
+	0b11111,
+	0b11111,
+	0b01110,
+	0b01110,
+	0b01110,
+	// Enemy 1
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
 };
 
 static char CG_CONTENT[] = {
@@ -336,7 +367,7 @@ static char CG_CONTENT[] = {
 static unsigned char LEVEL_DESC[4][16] = {
 	//Level 1
 	{' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '},
-	{' ' ,' ',' ',' ', ' ' ,' ',' ',' ',' ',' ',2,' ',' ', ' ',' ',' '},
+	{' ' ,' ',' ',' ', ' ' ,2,' ',' ',' ',' ',2,' ',' ', ' ',' ',' '},
 	//Level 2
 	{' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '},
 	{' ' ,' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '}
@@ -385,6 +416,9 @@ static unsigned int fall_off = 0;
 
 static unsigned int akt_level = 0; // Should be increased by 2!
 
+static int point = 0;
+static int health = 5;
+
 static void update_mario_buffer(){
 
 	int obj_ids[4] = {
@@ -398,7 +432,7 @@ static void update_mario_buffer(){
 	{
 		for (int j = 0; j < 8; j++)
 		{
-			if(obj_ids[i] >= 2) {
+			if(obj_ids[i] >= 2 && obj_ids[i] <= 10) {				//TODO: Object ID valid check
 				CG_CONTENT[i * 8 + j] = MARIO[obj_ids[i] * 8 + j];
 			} else {
 				CG_CONTENT[i * 8 + j] = 0;
@@ -531,10 +565,6 @@ static int collide(int mode) {
 	{
 	case MARIO_RIGHT: 
 	{	
-		if (collide(MARIO_DOWN) == -1) {
-			fall = true;
-		}
-
 		int obj_id = LEVEL_DESC[akt_level + start_row][start_col + 1]; // 2
 		
 		// detection
@@ -548,10 +578,6 @@ static int collide(int mode) {
 	}
 	case MARIO_LEFT:
 	{	
-		if (collide(MARIO_DOWN) == -1) {
-			fall = true;
-		}
-
 		if (start_col == 0 && col_offset == 0 && akt_level == 0) return 0; //invalid movement
 
 		int temp_c_start = col_offset ? start_col : start_col - 1;
@@ -616,6 +642,11 @@ static void update_position(int mode){
 		}
 
 		col_offset = (face_right ? (col_offset + 1) : (col_offset - 1)) % 5;
+
+		if (collide(MARIO_DOWN) == -1) {
+			fall = true;
+		}
+
 		break;
 	case MARIO_LEFT:
 		face_right = false;
@@ -630,6 +661,11 @@ static void update_position(int mode){
 		{
 			col_offset = (face_right ? (col_offset + 1) : (col_offset - 1)) % 5;
 		}
+
+		if (collide(MARIO_DOWN) == -1) {
+			fall = true;
+		}
+
 		break;
 	case MARIO_UP:
 		if (row_offset == 7)
