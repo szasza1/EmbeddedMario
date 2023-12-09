@@ -252,11 +252,29 @@ static char MARIO[] = {
 	0b00000,
 	0b00000,
 	0b00000,
+	0b01110,
+	0b11111,
+	0b10101,
+	0b11011,
+	0b01110,
+	// Platform 2
 	0b00000,
 	0b00000,
 	0b00000,
+	0b11111,
+	0b10101,
+	0b11011,
+	0b10101,
+	0b11111,
+	// Enemy 2
 	0b00000,
 	0b00000,
+	0b00000,
+	0b01010,
+	0b11011,
+	0b01110,
+	0b11111,
+	0b01010,
 };
 
 
@@ -346,7 +364,7 @@ static char CG_CONTENT[] = {
 static unsigned char LEVEL_DESC[4][16] = {
 	//Level 1
 	{' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '},
-	{' ' ,' ',' ',' ', ' ' ,2,' ',' ',' ',' ',2,' ',' ', ' ',' ',' '},
+	{' ' ,' ',' ',' ', ' ' ,2,' ',' ',' ',' ',3,' ',' ', 4,' ',5},
 	//Level 2
 	{' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '},
 	{' ' ,' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '}
@@ -354,7 +372,7 @@ static unsigned char LEVEL_DESC[4][16] = {
 
 // Level object ids are in increasing order.
 static unsigned char LEVEL_OBJECTS[2][4] = {
-	{2,0,0,0}, //Level 1
+	{2,3,4,5}, //Level 1
 	{0,0,0,0}  //Level 2
 };
 
@@ -395,7 +413,7 @@ static unsigned int fall_off = 0;
 
 static unsigned int akt_level = 0; // Should be increased by 2!
 
-static int point = 0;
+static int score = 0;
 static int health = 5;
 
 static void update_mario_buffer(){
@@ -544,10 +562,12 @@ static int collide(int mode) {
 	{
 	case MARIO_RIGHT: 
 	{	
-		int obj_id = LEVEL_DESC[akt_level + start_row][start_col + 1]; // 2
+		if (start_col == 15) return 0; // TODO:
+
+		int obj_id = LEVEL_DESC[akt_level + start_row][start_col + 1]; // 2-5
 		
 		// detection
-		if (obj_id == 2){
+		if (obj_id >= 2 && obj_id <= 5){
 			for (int i = row_offset; i < 8; i++)
 			{
 				if ( check_pixel(MARIO[(obj_id + 1) * 8 - 1 - i], col_offset) ) return obj_id;
@@ -565,7 +585,7 @@ static int collide(int mode) {
 		int obj_id = LEVEL_DESC[akt_level + start_row][temp_c_start];
 
 		// detection
-		if (obj_id == 2){
+		if (obj_id >= 2 && obj_id <= 5){
 			for (int i = row_offset; i < 8; i++)
 			{
 				if ( check_pixel(MARIO[(obj_id + 1) * 8 - 1 - i], (temp_c_off)) ) return obj_id;
@@ -583,13 +603,13 @@ static int collide(int mode) {
 		
 		int obj_id = LEVEL_DESC[akt_level + temp_r_start][start_col];
 
-		if (!col_offset && obj_id == 2 && MARIO[(obj_id + 1) * 8 - 1 - temp_r_off] != 0) return obj_id;
+		if (!col_offset && obj_id >= 2 && obj_id <= 5 && MARIO[(obj_id + 1) * 8 - 1 - temp_r_off] != 0) return obj_id;
 
 		if (col_offset) {
 			int obj_id_2 = LEVEL_DESC[akt_level + temp_r_start][start_col + 1];
 
-			char left_base = obj_id == 2 ? MARIO[(obj_id + 1) * 8 - 1 - temp_r_off] : 0;
-			char right_base = obj_id_2 == 2 ? MARIO[(obj_id_2 + 1) * 8 - 1 - temp_r_off] : 0;
+			char left_base = (obj_id <= 5 && obj_id >= 2) ? MARIO[(obj_id + 1) * 8 - 1 - temp_r_off] : 0;
+			char right_base = (obj_id_2 <= 5 && obj_id_2 >= 2) ? MARIO[(obj_id_2 + 1) * 8 - 1 - temp_r_off] : 0;
 
 			bool l_res = check_left_pixel(left_base, col_offset);
 			bool r_res = check_right_pixel(right_base, col_offset);
@@ -659,13 +679,10 @@ static void update_position(int mode){
 	{	
 		int akt_collision = collide(mode);
 		if(akt_collision == 0) return;
-		if(akt_collision == 2) {
+		if(akt_collision >= 2 && akt_collision <= 5) {
 			jump = false;
 			return;
 		}
-
-		
-		
 
 		if (row_offset == 0 && start_row == 0)
 		{
@@ -791,15 +808,12 @@ static int update_map(){
 }
 
 static void update_DD(int shift_mode){
-
 	if(shift_mode == 1) { // Right shift
 		lcd_send_command(DD_RAM_ADDR2 + start_col);
-		//lcd_send_data(MAP[1][start_col - 1]);
 		lcd_send_data(MAP[1][start_col]);
 		lcd_send_data(MAP[1][start_col + 1]);
 
 		lcd_send_command(DD_RAM_ADDR + start_col);
-		//lcd_send_data(MAP[0][start_col - 1]);
 		lcd_send_data(MAP[0][start_col]);
 		lcd_send_data(MAP[0][start_col + 1]);
 
@@ -807,14 +821,16 @@ static void update_DD(int shift_mode){
 		lcd_send_command(DD_RAM_ADDR2 + start_col);
 		lcd_send_data(MAP[1][start_col]);
 		lcd_send_data(MAP[1][start_col + 1]);
-		//lcd_send_data(MAP[1][start_col + 2]);
 
 		lcd_send_command(DD_RAM_ADDR + start_col);
 		lcd_send_data(MAP[0][start_col]);
 		lcd_send_data(MAP[0][start_col + 1]);
-		//lcd_send_data(MAP[0][start_col + 2]);
 	}
 
+	lcd_send_command(DD_RAM_ADDR);
+	lcd_send_data(health + '0');
+	lcd_send_command(DD_RAM_ADDR + 15);
+	lcd_send_data(score + '0');
 }
 
 
@@ -832,6 +848,34 @@ static void delete_prev_col_DD(int shift_mode){
 		lcd_send_command(DD_RAM_ADDR + start_col + 2);
 		lcd_send_data(MAP[0][start_col + 2]);
 	}
+}
+
+
+static void init_screen() {
+	lcd_send_command(CG_RAM_ADDR);
+
+	for (int i = 0; i < 64; i++)
+	{
+		lcd_send_data(CG_CONTENT[i]);
+	}
+
+	lcd_send_command(DD_RAM_ADDR);
+	for (int i = 0; i < 16; i++)
+	{
+		lcd_send_data(MAP[0][i]);
+	}
+
+	// Update the second line
+	lcd_send_command(DD_RAM_ADDR2);
+	for (int i = 0; i < 16; i++)
+	{
+		lcd_send_data(MAP[1][i]);
+	}
+
+	lcd_send_command(DD_RAM_ADDR);
+	lcd_send_data(health + '0');
+	lcd_send_command(DD_RAM_ADDR + 15);
+	lcd_send_data(score + '0');
 }
 
 
@@ -871,48 +915,13 @@ int main() {
 	load_level(akt_level);
 	init_CG_CONTENT(akt_level);
 
-	// update_CG();
-	lcd_send_command(CG_RAM_ADDR);
-
-	for (int i = 0; i < 64; i++)
-	{
-		lcd_send_data(CG_CONTENT[i]);
-	}
-
-	// update_DD();
-	lcd_send_command(DD_RAM_ADDR);
-	for (int i = 0; i < 16; i++)
-	{
-		lcd_send_data(MAP[0][i]);
-	}
-
-	// Update the second line
-	lcd_send_command(DD_RAM_ADDR2);
-	for (int i = 0; i < 16; i++)
-	{
-		lcd_send_data(MAP[1][i]);
-	}
-
-
+	init_screen();
 
 	// Game Loop
 	while(1)
 	{	
 		action = is_pressed();
 		
-		
-		if (jump) {
-			if (jump_off <= 2){
-				jump_off ++;
-				move_m(MARIO_UP, 2);
-			} else {
-				jump = false;
-				jump_off = 0;
-				fall = true;
-
-				move_m(MARIO_UP, 1);
-			}
-		}
 
 		if (fall) {
 			if(fall_off == 0) {
@@ -926,7 +935,19 @@ int main() {
 				fall_off = 0;
 				fall = false;
 			}
+		}
 
+		if (jump) {
+			if (jump_off <= 2){
+				jump_off ++;
+				move_m(MARIO_UP, 2);
+			
+			} else {
+				jump = false;
+				jump_off = 0;
+				fall = true;
+				move_m(MARIO_UP, 1);
+			}
 		}
 
 		// Process the input
