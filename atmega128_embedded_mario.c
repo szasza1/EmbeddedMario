@@ -477,7 +477,7 @@ static void update_mario_buffer(){
 				CG_CONTENT[i * 8 + j] = MARIO[obj_ids[i] * 8 + j];
 			} else {
 				CG_CONTENT[i * 8 + j] = 0;
-			}		
+			}
 		}
 		
 	}
@@ -490,11 +490,22 @@ static void update_mario_buffer(){
 		// Update char 0 and char 1
 		for (int i = 0; i < (8 - row_offset); i++)
 		{
-			int start_index = face_right ? 0 : 8;
+			/*int start_index = face_right ? 0 : 8;
 			// CG 0
 			CG_CONTENT[i] |= MARIO[start_index + i + row_offset] >> col_offset;
 			// CG 1
-			if (col_offset) CG_CONTENT[i + 8] |= MARIO[start_index + i + row_offset] << (5 - col_offset);
+			if (col_offset) CG_CONTENT[i + 8] |= MARIO[start_index + i + row_offset] << (5 - col_offset);*/
+
+
+			int start_index = face_right ? 0 : 16;
+			int step = (!h_animation_offset) : 0 ? 1;
+
+			start_index += (step * 8);
+
+			// CG 0
+			CG_CONTENT[i] |= MARIO_ANIM[start_index + i + row_offset] >> col_offset;
+			// CG 1
+			if (col_offset) CG_CONTENT[i + 8] |= MARIO_ANIM[start_index + i + row_offset] << (5 - col_offset);
 		}
 
 	}
