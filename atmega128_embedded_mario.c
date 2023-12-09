@@ -554,166 +554,6 @@ static bool check_right_pixel(char src, int offset) {
 	}
 }
 
-// -1: Nincs utkozes
-// 0: Ervenytelen lepes
-// >=2: Utkozott objektum ID
-static int collide(int mode) {
-	switch (mode)
-	{
-	case MARIO_RIGHT: 
-	{	
-		if (start_col == 15) return 0; // TODO:
-
-		int obj_id = LEVEL_DESC[akt_level + start_row][start_col + 1]; // 2-5
-		
-		// detection
-		if (obj_id >= 2 && obj_id <= 5){
-			for (int i = row_offset; i < 8; i++)
-			{
-				if ( check_pixel(MARIO[(obj_id + 1) * 8 - 1 - i], col_offset) ) return obj_id;
-			}
-		}
-		break;
-	}
-	case MARIO_LEFT:
-	{	
-		if (start_col == 0 && col_offset == 0 && akt_level == 0) return 0; //invalid movement
-
-		int temp_c_start = col_offset ? start_col : start_col - 1;
-		int temp_c_off = col_offset ? col_offset - 1 : 4;
-
-		int obj_id = LEVEL_DESC[akt_level + start_row][temp_c_start];
-
-		// detection
-		if (obj_id >= 2 && obj_id <= 5){
-			for (int i = row_offset; i < 8; i++)
-			{
-				if ( check_pixel(MARIO[(obj_id + 1) * 8 - 1 - i], (temp_c_off)) ) return obj_id;
-			}
-		}
-		
-		break;
-	}
-	case MARIO_DOWN:
-	{
-		if(start_row && !row_offset) return 0; // start_row = 1 and row_offset == 0
-
-		int temp_r_start = row_offset ? start_row : 1; 
-		int temp_r_off = row_offset ? row_offset - 1 : 7;
-		
-		int obj_id = LEVEL_DESC[akt_level + temp_r_start][start_col];
-
-		if (!col_offset && obj_id >= 2 && obj_id <= 5 && MARIO[(obj_id + 1) * 8 - 1 - temp_r_off] != 0) return obj_id;
-
-		if (col_offset) {
-			int obj_id_2 = LEVEL_DESC[akt_level + temp_r_start][start_col + 1];
-
-			char left_base = (obj_id <= 5 && obj_id >= 2) ? MARIO[(obj_id + 1) * 8 - 1 - temp_r_off] : 0;
-			char right_base = (obj_id_2 <= 5 && obj_id_2 >= 2) ? MARIO[(obj_id_2 + 1) * 8 - 1 - temp_r_off] : 0;
-
-			bool l_res = check_left_pixel(left_base, col_offset);
-			bool r_res = check_right_pixel(right_base, col_offset);
-
-			if (l_res) return obj_id;
-			if (r_res) return obj_id_2;
-		}
-
-	}
-	default:
-		break;
-	}
-
-	return -1; // nincs collision
-}
-
-
-// Itt kell megnezni, hogy az adott lepes ervenyes-e? Collision
-static void update_position(int mode){
-	switch (mode)
-	{
-	case MARIO_RIGHT:
-		face_right = true;
-
-		int akt_collision = collide(mode);
-		if (akt_collision == 0) return;
-
-		if (akt_collision == 2 || akt_collision == 4) return;
-		else if (akt_collision == 3 || akt_collision == 5) {
-			health --;
-		}
-		// if(collide(mode) != (-1)) return;
-
-		if (col_offset == 4){
-			start_col += 1;
-		}
-
-		col_offset = (face_right ? (col_offset + 1) : (col_offset - 1)) % 5;
-
-		if (collide(MARIO_DOWN) == -1) {
-			fall = true;
-		}
-
-		break;
-	case MARIO_LEFT:
-		face_right = false;
-
-		if(collide(mode) != (-1)) return;
-
-		if (col_offset == 0)
-		{
-			start_col -= 1;
-			col_offset = 4;
-		} else 
-		{
-			col_offset = (face_right ? (col_offset + 1) : (col_offset - 1)) % 5;
-		}
-
-		if (collide(MARIO_DOWN) == -1) {
-			fall = true;
-		}
-
-		break;
-	case MARIO_UP:
-		if (row_offset == 7)
-		{
-			start_row = 0;
-		}
-
-		row_offset = (row_offset + 1) % 8;
-
-		break;
-	case MARIO_DOWN:
-	{	
-		int akt_collision = collide(mode);
-		if(akt_collision == 0) return;
-		if(akt_collision >= 2 && akt_collision <= 5) {
-			jump = false;
-			return;
-		}
-
-		if (row_offset == 0 && start_row == 0)
-		{
-			row_offset = 7;
-			start_row = 1;
-		}
-		else
-		{
-			row_offset -= 1;
-		}
-		break;
-	}
-	default:
-		break;
-	}
-}
-
-static void update_position_n(int mode, int n){
-	for (int i = 0; i < n; i++)
-	{
-		update_position(mode);
-	}
-}
-
 
 static void load_level(unsigned int akt_level){
 	for (int i = 0; i < 2; i++)
@@ -900,7 +740,216 @@ static void update(){
 	update_DD(shift_mode);
 }
 
-static void move_m(int mode, int n){ 
+
+// -1: Nincs utkozes
+// 0: Ervenytelen lepes
+// >=2: Utkozott objektum ID
+static int collide(int mode) {
+	switch (mode)
+	{
+	case MARIO_RIGHT: 
+	{	
+		if (start_col == 15) return 0; // TODO:
+
+		int obj_id = LEVEL_DESC[akt_level + start_row][start_col + 1]; // 2-5
+		
+		// detection
+		if (obj_id >= 2 && obj_id <= 5){
+			for (int i = row_offset; i < 8; i++)
+			{
+				if ( check_pixel(MARIO[(obj_id + 1) * 8 - 1 - i], col_offset) ) return obj_id;
+			}
+		}
+		break;
+	}
+	case MARIO_LEFT:
+	{	
+		if (start_col == 0 && col_offset == 0 && akt_level == 0) return 0; //invalid movement
+
+		int temp_c_start = col_offset ? start_col : start_col - 1;
+		int temp_c_off = col_offset ? col_offset - 1 : 4;
+
+		int obj_id = LEVEL_DESC[akt_level + start_row][temp_c_start];
+
+		// detection
+		if (obj_id >= 2 && obj_id <= 5){
+			for (int i = row_offset; i < 8; i++)
+			{
+				if ( check_pixel(MARIO[(obj_id + 1) * 8 - 1 - i], (temp_c_off)) ) return obj_id;
+			}
+		}
+		
+		break;
+	}
+	case MARIO_DOWN:
+	{
+		if(start_row && !row_offset) return 0; // start_row = 1 and row_offset == 0
+
+		int temp_r_start = row_offset ? start_row : 1; 
+		int temp_r_off = row_offset ? row_offset - 1 : 7;
+		
+		int obj_id = LEVEL_DESC[akt_level + temp_r_start][start_col];
+
+		if (!col_offset && obj_id >= 2 && obj_id <= 5 && MARIO[(obj_id + 1) * 8 - 1 - temp_r_off] != 0) return obj_id;
+
+		if (col_offset) {
+			int obj_id_2 = LEVEL_DESC[akt_level + temp_r_start][start_col + 1];
+
+			char left_base = (obj_id <= 5 && obj_id >= 2) ? MARIO[(obj_id + 1) * 8 - 1 - temp_r_off] : 0;
+			char right_base = (obj_id_2 <= 5 && obj_id_2 >= 2) ? MARIO[(obj_id_2 + 1) * 8 - 1 - temp_r_off] : 0;
+
+			bool l_res = check_left_pixel(left_base, col_offset);
+			bool r_res = check_right_pixel(right_base, col_offset);
+
+			if (l_res) return obj_id;
+			if (r_res) return obj_id_2;
+		}
+
+	}
+	default:
+		break;
+	}
+
+	return -1; // nincs collision
+}
+
+
+static bool process_collision(int mode, int akt_collision){
+	if (akt_collision == 0) return true;
+	if (akt_collision == 2 || akt_collision == 4){
+		jump = false;
+		return true;
+	}
+
+	switch (mode)
+	{
+	case MARIO_LEFT:
+	case MARIO_RIGHT:
+	{
+		if (akt_collision == 3 || akt_collision == 5) {
+			health --;
+			if(mode == MARIO_LEFT) move_m(MARIO_RIGHT, 2);
+			else move_m(MARIO_LEFT, 2);
+		}
+
+		return false;
+	}
+	case MARIO_DOWN:
+	{
+		if (akt_collision == 3) {
+			score ++;
+			health ++;
+
+			if (LEVEL_DESC[akt_level + start_row][start_col] == akt_collision) LEVEL_DESC[akt_level + start_row][start_col] = ' '; 
+			if (LEVEL_DESC[akt_level + start_row][start_col + 1] == akt_collision) LEVEL_DESC[akt_level + start_row][start_col + 1] = ' ';
+
+			return false;
+			
+		} else if (akt_collision == 5) {
+			health -= 2;
+			if(mode == MARIO_LEFT) move_m(MARIO_RIGHT, 4);
+			else move_m(MARIO_LEFT, 4);
+		}
+	}
+	default:
+		break;
+	}
+
+	return false;
+}
+
+
+// Itt kell megnezni, hogy az adott lepes ervenyes-e? Collision
+static void update_position(int mode){
+	switch (mode)
+	{
+	case MARIO_RIGHT:
+	{
+		face_right = true;
+
+		int akt_collision = collide(mode);
+		if (process_collision(MARIO_RIGHT, akt_collision)) return;
+
+
+		if (col_offset == 4){
+			start_col += 1;
+		}
+
+		col_offset = (face_right ? (col_offset + 1) : (col_offset - 1)) % 5;
+
+		if (collide(MARIO_DOWN) == -1) {
+			fall = true;
+		}
+
+		break;
+	}
+	case MARIO_LEFT:
+	{
+		face_right = false;
+
+		int akt_collision = collide(mode);
+		if (process_collision(MARIO_LEFT, akt_collision)) return;
+
+
+		if (col_offset == 0)
+		{
+			start_col -= 1;
+			col_offset = 4;
+		} else 
+		{
+			col_offset = (face_right ? (col_offset + 1) : (col_offset - 1)) % 5;
+		}
+
+		if (collide(MARIO_DOWN) == -1) {
+			fall = true;
+		}
+
+		break;
+	}
+	case MARIO_UP:
+	{
+		if (row_offset == 7)
+		{
+			start_row = 0;
+		}
+
+		row_offset = (row_offset + 1) % 8;
+
+		break;
+	}
+	case MARIO_DOWN:
+	{	
+		int akt_collision = collide(mode);
+		if (process_collision(MARIO_DOWN, akt_collision)) return;
+
+
+		if (row_offset == 0 && start_row == 0)
+		{
+			row_offset = 7;
+			start_row = 1;
+		}
+		else
+		{
+			row_offset -= 1;
+		}
+		break;
+	}
+	default:
+		break;
+	}
+}
+
+
+
+void update_position_n(int mode, int n){
+	for (int i = 0; i < n; i++)
+	{
+		update_position(mode);
+	}
+}
+
+
+void move_m(int mode, int n){ 
 	if (n == 1) {
 		update_position(mode);	
 	} else {
@@ -909,7 +958,6 @@ static void move_m(int mode, int n){
 	update_mario_buffer(); 
 	update(); 
 }
-
 
 int main() {
 	port_init();
