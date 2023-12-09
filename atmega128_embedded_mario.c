@@ -260,27 +260,6 @@ static char MARIO[] = {
 };
 
 
-static char OBJECTS[] = {
-	// Platform 1
-	0b00000,
-	0b00000,
-	0b00000,
-	0b11111,
-	0b11111,
-	0b01110,
-	0b01110,
-	0b01110,
-	// Enemy 1
-	0b00000,
-	0b00000,
-	0b00000,
-	0b00000,
-	0b00000,
-	0b00000,
-	0b00000,
-	0b00000,
-};
-
 static char CG_CONTENT[] = {
 	// Char 0 (Mario)
 	0b00000,
