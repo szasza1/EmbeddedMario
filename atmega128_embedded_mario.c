@@ -221,7 +221,7 @@ static void lcd_send_line2(char *str) {
 }
 
 static char MARIO[] = {
-	// Race right 
+	// Face right 
 	0b00000,
 	0b00000,
 	0b01100,
@@ -277,6 +277,45 @@ static char MARIO[] = {
 	0b01010,
 };
 
+
+static char MARIO_ANIM[] = {
+	// Right 1
+	0b00000,
+	0b00000,
+	0b01100,
+	0b01111,
+	0b01111,
+	0b11110,
+	0b11010,
+	0b00011,
+	// Right 2
+	0b00000,
+	0b00000,
+	0b01100,
+	0b01111,
+	0b11110,
+	0b01111,
+	0b01011,
+	0b11000,
+	// Left 1
+	0b00000,
+	0b00000,
+	0b00110,
+	0b11110,
+	0b01111,
+	0b11110,
+	0b11010,
+	0b00011,
+	// Left 2
+	0b00000,
+	0b00000,
+	0b00110,
+	0b11110,
+	0b11110,
+	0b01111,
+	0b01011,
+	0b11000,
+};
 
 static char CG_CONTENT[] = {
 	// Char 0 (Mario)
@@ -416,6 +455,10 @@ static unsigned int akt_level = 0; // Should be increased by 2!
 
 static int score = 0;
 static int health = 5;
+
+
+static int h_animation_offset = 0;
+
 
 static void update_mario_buffer(){
 
@@ -965,6 +1008,7 @@ int main() {
 	
 	// Game variables
 	unsigned int action = A_NONE;
+	int anim_gap = 1000;
 
 	// Initialization
 	load_level(akt_level);
@@ -1013,10 +1057,12 @@ int main() {
 		// Process the input
 		if(action == A_LEFT)
 		{	
+			h_animation_offset = (h_animation_offset + 1) % anim_gap;
 			move_m(MARIO_LEFT, 2);
 		}	
 		else if (action == A_RIGHT)
 		{
+			h_animation_offset = (h_animation_offset + 1) % anim_gap;
 			move_m(MARIO_RIGHT, 2);
 		}
 		else if (action == A_JUMP && (!jump) && (!fall)) {
