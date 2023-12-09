@@ -275,6 +275,15 @@ static char MARIO[] = {
 	0b01110,
 	0b11111,
 	0b01010,
+	// Fire
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00010,
+	0b01100,
+	0b00110,
+	0b01100,
+	0b11111,
 };
 
 
@@ -285,16 +294,16 @@ static char MARIO_ANIM[] = {
 	0b01100,
 	0b01111,
 	0b01111,
-	0b11110,
+	0b01110,
 	0b11010,
 	0b00011,
-	// Right 2
+	// Left 2
 	0b00000,
 	0b00000,
 	0b01100,
 	0b01111,
 	0b11110,
-	0b01111,
+	0b01110,
 	0b01011,
 	0b11000,
 	// Left 1
@@ -303,7 +312,7 @@ static char MARIO_ANIM[] = {
 	0b00110,
 	0b11110,
 	0b01111,
-	0b11110,
+	0b01110,
 	0b11010,
 	0b00011,
 	// Left 2
@@ -312,7 +321,7 @@ static char MARIO_ANIM[] = {
 	0b00110,
 	0b11110,
 	0b11110,
-	0b01111,
+	0b01110,
 	0b01011,
 	0b11000,
 };
@@ -403,17 +412,18 @@ static char CG_CONTENT[] = {
 static unsigned char LEVEL_DESC[4][16] = {
 	//Level 1
 	{' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '},
-	{' ' ,' ',' ',' ', ' ' ,2,' ',' ',' ',' ',3,' ',' ', 4,' ',5},
+	{' ' ,' ',' ',6, ' ' ,2,' ',' ',' ',' ',3,' ',' ', 6,' ',5},
 	//Level 2
 	{' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '},
-	{' ' ,' ',' ',' ',' ',' ',2,' ',' ',' ',' ',' ',5,' ',' ',' '}
+	{' ' ,' ',' ',' ',' ',' ',2,' ',' ',' ',' ',' ',5,' ',' ',6}
 };
 
 // Level object ids are in increasing order.
 static unsigned char LEVEL_OBJECTS[3][4] = {
-	{2,3,4,5}, //Level 1
-	{0,0,0,0},
-	{2,5,0,0},  //Level 2
+	{2,3,5,6}, //Level 1
+	{13,3,0,0}, // Fire pos in level 1
+	{2,5,6,0},  //Level 2
+	{0,0,0,0}
 };
 
 static unsigned char MAP[2][16] = {
@@ -458,6 +468,7 @@ static int health = 5;
 
 
 static int h_animation_offset = 0;
+static int h_anim_gap = 25;
 
 
 static void update_mario_buffer(){
@@ -498,7 +509,7 @@ static void update_mario_buffer(){
 
 
 			int start_index = face_right ? 0 : 16;
-			int step = (!h_animation_offset) : 0 ? 1;
+			int step = (h_animation_offset < h_anim_gap) ? 0 : 1;
 
 			start_index += (step * 8);
 
@@ -506,6 +517,7 @@ static void update_mario_buffer(){
 			CG_CONTENT[i] |= MARIO_ANIM[start_index + i + row_offset] >> col_offset;
 			// CG 1
 			if (col_offset) CG_CONTENT[i + 8] |= MARIO_ANIM[start_index + i + row_offset] << (5 - col_offset);
+			h_animation_offset = (h_animation_offset + 1) % (2*h_anim_gap);
 		}
 
 	}
@@ -809,7 +821,7 @@ static int collide(int mode) {
 		int obj_id = LEVEL_DESC[akt_level + start_row][start_col + 1]; // 2-5
 		
 		// detection
-		if (obj_id >= 2 && obj_id <= 5){
+		if (obj_id >= 2 && obj_id <= 6){
 			for (int i = row_offset; i < 8; i++)
 			{
 				if ( check_pixel(MARIO[(obj_id + 1) * 8 - 1 - i], col_offset) ) return obj_id;
@@ -827,7 +839,7 @@ static int collide(int mode) {
 		int obj_id = LEVEL_DESC[akt_level + start_row][temp_c_start];
 
 		// detection
-		if (obj_id >= 2 && obj_id <= 5){
+		if (obj_id >= 2 && obj_id <= 6){
 			for (int i = row_offset; i < 8; i++)
 			{
 				if ( check_pixel(MARIO[(obj_id + 1) * 8 - 1 - i], (temp_c_off)) ) return obj_id;
@@ -845,13 +857,13 @@ static int collide(int mode) {
 		
 		int obj_id = LEVEL_DESC[akt_level + temp_r_start][start_col];
 
-		if (!col_offset && obj_id >= 2 && obj_id <= 5 && MARIO[(obj_id + 1) * 8 - 1 - temp_r_off] != 0) return obj_id;
+		if (!col_offset && obj_id >= 2 && obj_id <= 6 && MARIO[(obj_id + 1) * 8 - 1 - temp_r_off] != 0) return obj_id;
 
 		if (col_offset) {
 			int obj_id_2 = LEVEL_DESC[akt_level + temp_r_start][start_col + 1];
 
-			char left_base = (obj_id <= 5 && obj_id >= 2) ? MARIO[(obj_id + 1) * 8 - 1 - temp_r_off] : 0;
-			char right_base = (obj_id_2 <= 5 && obj_id_2 >= 2) ? MARIO[(obj_id_2 + 1) * 8 - 1 - temp_r_off] : 0;
+			char left_base = (obj_id <= 6 && obj_id >= 2) ? MARIO[(obj_id + 1) * 8 - 1 - temp_r_off] : 0;
+			char right_base = (obj_id_2 <= 6 && obj_id_2 >= 2) ? MARIO[(obj_id_2 + 1) * 8 - 1 - temp_r_off] : 0;
 
 			bool l_res = check_left_pixel(left_base, col_offset);
 			bool r_res = check_right_pixel(right_base, col_offset);
@@ -880,7 +892,11 @@ static bool process_collision(int mode, int akt_collision){
 	{
 	case MARIO_LEFT:
 	case MARIO_RIGHT:
-	{
+	{	
+		if (akt_collision == 6){ // Fire
+			// Death
+		}
+
 		if (akt_collision == 3 || akt_collision == 5) {
 			health --;
 			if(mode == MARIO_LEFT) move_m(MARIO_RIGHT, 2);
@@ -890,7 +906,12 @@ static bool process_collision(int mode, int akt_collision){
 		return false;
 	}
 	case MARIO_DOWN:
-	{
+	{	
+
+		if (akt_collision == 6){ // Fire
+			// Death
+		}
+
 		if (akt_collision == 3) {
 			score ++;
 			health ++;
@@ -1013,13 +1034,13 @@ void move_m(int mode, int n){
 	update(); 
 }
 
+
 int main() {
 	port_init();
 	lcd_init();
 	
 	// Game variables
 	unsigned int action = A_NONE;
-	int anim_gap = 1000;
 
 	// Initialization
 	load_level(akt_level);
@@ -1031,6 +1052,7 @@ int main() {
 	while(1)
 	{	
 		action = is_pressed();
+		
 		
 
 		if (fall) {
@@ -1068,12 +1090,10 @@ int main() {
 		// Process the input
 		if(action == A_LEFT)
 		{	
-			h_animation_offset = (h_animation_offset + 1) % anim_gap;
 			move_m(MARIO_LEFT, 2);
 		}	
 		else if (action == A_RIGHT)
 		{
-			h_animation_offset = (h_animation_offset + 1) % anim_gap;
 			move_m(MARIO_RIGHT, 2);
 		}
 		else if (action == A_JUMP && (!jump) && (!fall)) {
