@@ -367,13 +367,14 @@ static unsigned char LEVEL_DESC[4][16] = {
 	{' ' ,' ',' ',' ', ' ' ,2,' ',' ',' ',' ',3,' ',' ', 4,' ',5},
 	//Level 2
 	{' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '},
-	{' ' ,' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '}
+	{' ' ,' ',' ',' ',' ',' ',2,' ',' ',' ',' ',' ',5,' ',' ',' '}
 };
 
 // Level object ids are in increasing order.
-static unsigned char LEVEL_OBJECTS[2][4] = {
+static unsigned char LEVEL_OBJECTS[3][4] = {
 	{2,3,4,5}, //Level 1
-	{0,0,0,0}  //Level 2
+	{0,0,0,0},
+	{2,5,0,0},  //Level 2
 };
 
 static unsigned char MAP[2][16] = {
@@ -577,12 +578,12 @@ static void load_level(unsigned int akt_level){
 		
 	}
 
-	if (akt_level == 0){
-		MAP[0][start_col] = 2;
-		MAP[0][start_col + 1] = 3;
-		MAP[1][start_col] = 0;
-		MAP[1][start_col + 1] = 1;
-	}
+	
+	MAP[0][start_col] = 2;
+	MAP[0][start_col + 1] = 3;
+	MAP[1][start_col] = 0;
+	MAP[1][start_col + 1] = 1;
+	
 
 }
 
@@ -859,7 +860,6 @@ static bool process_collision(int mode, int akt_collision){
 }
 
 
-// Itt kell megnezni, hogy az adott lepes ervenyes-e? Collision
 static void update_position(int mode){
 	switch (mode)
 	{
@@ -982,18 +982,23 @@ int main() {
 			if(fall_off == 0) {
 				move_m(MARIO_DOWN, 1);
 				fall_off ++;
-			} else if (fall_off <= 2) {
+			} else if (fall_off <= 3) {
 				move_m(MARIO_DOWN, 2);
 				fall_off ++;				
 			} else {
 				move_m(MARIO_DOWN, 3);
-				fall_off = 0;
-				fall = false;
+				// Standing ?
+				if(collide(MARIO_DOWN) == -1){
+					fall_off = 3;
+				} else {
+					fall_off = 0;
+					fall = false;
+				}
 			}
 		}
 
 		if (jump) {
-			if (jump_off <= 2){
+			if (jump_off <= 3){
 				jump_off ++;
 				move_m(MARIO_UP, 2);
 			
