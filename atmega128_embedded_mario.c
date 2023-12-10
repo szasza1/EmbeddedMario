@@ -440,7 +440,7 @@ static unsigned char LEVEL_DESC[][16] = {
 	{M_C, M_C, P_1, M_C, W_1, E_1, W_1, E_1, M_C, F_1, P_2, W_1, E_1, F_1, M_C, M_C},
 	//Level 6
 	{M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C},
-	{M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C}
+	{M_C, P_2, W_1, F_1, P_2, M_C, E_2, M_C, W_1, M_C, W_1, E_2, M_C, E_2, M_C, M_C}
 };
 
 
@@ -456,7 +456,7 @@ static unsigned char LEVEL_OBJECTS[][4] = {
 	{EM,EM,EM,EM},
 	{F_1,P_1,E_1,P_2},		// Level 5
 	{EM,EM,EM,EM},
-	{EM,EM,EM,EM},		// Level 6
+	{F_1,P_2,P_1,E_2},		// Level 6
 };
 
 static unsigned char MAP[2][16] = {
