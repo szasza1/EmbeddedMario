@@ -420,19 +420,27 @@ static char CG_CONTENT[] = {
 
 #define EM 0
 
+#define LAST_LEVEL 10
+
 static unsigned char LEVEL_DESC[][16] = {
 	//Level 1
 	{M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C},
 	{M_C, M_C, M_C, P_1, M_C, E_1, P_1, M_C, M_C, M_C, E_2, M_C, P_2, M_C, M_C, M_C},
 	//Level 2
 	{M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C},
-	{M_C, M_C, P_1, E_1, P_1, M_C, M_C, F_1, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C},
+	{M_C, M_C, P_1, E_1, P_1, M_C, M_C, F_1, M_C, W_1, M_C, W_1, M_C, E_2, M_C, M_C},
 	//Level 3
 	{M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C},
-	{M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C},
+	{M_C, P_1, W_1, F_1, P_2, M_C, E_1, E_1, P_2, M_C, M_C, W_1, F_1, P_2, M_C, M_C},
 	//Level 4
 	{M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C},
+	{M_C, P_1, P_1, E_1, F_1, M_C, M_C, W_1, E_1, W_1, M_C, P_2, E_1, M_C, M_C, M_C},
+	//Level 5
 	{M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C},
+	{M_C, M_C, P_1, M_C, W_1, E_1, W_1, E_1, M_C, F_1, P_2, W_1, E_1, F_1, M_C, M_C},
+	//Level 6
+	{M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C},
+	{M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C}
 };
 
 
@@ -440,11 +448,15 @@ static unsigned char LEVEL_DESC[][16] = {
 static unsigned char LEVEL_OBJECTS[][4] = {
 	{P_1,E_1,E_2,P_2}, //Level 1
 	{EM,EM,EM,EM},
-	{E_1, P_1, F_1, 0},  //Level 2
+	{E_1, P_1, F_1, E_2},  //Level 2
 	{EM,EM,EM,EM},
-	{2,3,5,0},	//Level 3
+	{P_1,F_1,E_1,P_2},	//Level 3
 	{EM,EM,EM,EM},
-	{2,3,5,0},	//Level 4
+	{P_1,E_1,F_1,P_2},	//Level 4
+	{EM,EM,EM,EM},
+	{F_1,P_1,E_1,P_2},		// Level 5
+	{EM,EM,EM,EM},
+	{EM,EM,EM,EM},		// Level 6
 };
 
 static unsigned char MAP[2][16] = {
@@ -839,12 +851,14 @@ static void update(){
 // >=2: Utkozott objektum ID
 // 10: next level
 // 11: prev level
+// 12: THE END
 static int collide(int mode) {
 	switch (mode)
 	{
 	case MARIO_RIGHT: 
 	{	
-		if (start_col == 15) return 10; // Load next level.
+		if (start_col == 15 && akt_level < LAST_LEVEL) return 10; // Load next level.
+		if (start_col == 15 && akt_level == LAST_LEVEL) return 12; // The END.
 
 		int obj_id = LEVEL_DESC[akt_level + start_row][start_col + 1]; // 2-5
 		
@@ -925,6 +939,39 @@ static void dead() {
 }
 
 
+static void the_end() {
+	lcd_send_line1("The End! Score:");
+	lcd_send_line2("Embedded MARIO");
+	while (true) {}
+}
+
+static void menu(){
+	lcd_send_command(CG_RAM_ADDR);
+	for (int i = 0; i < 16; i++)
+	{
+		lcd_send_data(MARIO[i]);
+	}
+
+	lcd_send_line1(" Embedded MARIO ");
+
+	char s[] = "     PLAY     ";
+	lcd_send_command(DD_RAM_ADDR2);
+	lcd_send_data(1);
+	for (int i = 0; i < 14; i++)
+	{
+		lcd_send_data(s[i]);
+	}
+
+	lcd_send_data(0);
+	
+	int action = A_NONE;
+
+	while (action == A_NONE) {
+		action = is_pressed();
+	}
+
+}
+
 static bool process_collision(int mode, int akt_collision){
 	if (akt_collision == 0) return true;
 	if (akt_collision == 2 || akt_collision == 4 || akt_collision == W_1){
@@ -959,14 +1006,16 @@ static bool process_collision(int mode, int akt_collision){
 			init_screen();
 
 			return true;
+		} else if (akt_collision == 12) {
+			the_end();
 		}
 
-		if (akt_collision == 6){ // Fire
+		/*if (akt_collision == 6){ // Fire
 			dead();
 			return true;
-		}
+		}*/
 
-		if (akt_collision == 3 || akt_collision == 5) {
+		if (akt_collision == 3 || akt_collision == 5 || akt_collision == 6) {
 			health --;
 			if (!health) {
 				dead();
@@ -982,21 +1031,21 @@ static bool process_collision(int mode, int akt_collision){
 	case MARIO_DOWN:
 	{	
 
-		if (akt_collision == 6){ // Fire
+		/*if (akt_collision == 6){ // Fire
 			dead();
 			return true;
-		}
+		}*/
 
-		if (akt_collision == 3) {
-			score ++;
-			health ++;
+		if (akt_collision == E_1) {
+			if (score < 9) score ++;
+			if (health < 9) health ++;
 
-			if (LEVEL_DESC[akt_level + start_row][start_col] == akt_collision) LEVEL_DESC[akt_level + start_row][start_col] = ' '; 
-			if (LEVEL_DESC[akt_level + start_row][start_col + 1] == akt_collision) LEVEL_DESC[akt_level + start_row][start_col + 1] = ' ';
+			if (LEVEL_DESC[akt_level + start_row][start_col] == akt_collision) LEVEL_DESC[akt_level + start_row][start_col] = M_C; 
+			if (LEVEL_DESC[akt_level + start_row][start_col + 1] == akt_collision) LEVEL_DESC[akt_level + start_row][start_col + 1] = M_C;
 
 			return false;
 			
-		} else if (akt_collision == 5) {
+		} else if (akt_collision == 5 || akt_collision == 6) {
 			health --;
 			if (!health) {
 				dead();
@@ -1091,6 +1140,7 @@ static void update_position(int mode){
 		{
 			row_offset -= 1;
 		}
+
 		break;
 	}
 	default:
@@ -1118,10 +1168,15 @@ void move_m(int mode, int n){
 }
 
 
+#define H_SPEED 2
+
 int main() {
 	port_init();
 	lcd_init();
 	
+
+	menu();
+
 	// Game variables
 	unsigned int action = A_NONE;
 
@@ -1132,6 +1187,7 @@ int main() {
 	init_screen();
 
 	// Game Loop
+
 	while(1)
 	{	
 		action = is_pressed();
@@ -1180,13 +1236,13 @@ int main() {
 		if(action == A_LEFT)
 		{	
 			if (jump || fall) move_m(MARIO_LEFT, 3);
-			else move_m(MARIO_LEFT, 2);
+			else move_m(MARIO_LEFT, H_SPEED);
 			
 		}	
 		else if (action == A_RIGHT)
 		{
 			if (jump || fall) move_m(MARIO_RIGHT, 3);
-			else move_m(MARIO_RIGHT, 2);
+			else move_m(MARIO_RIGHT, H_SPEED);
 		}
 		else if (action == A_JUMP && (!jump) && (!fall)) {
 			jump = true;
