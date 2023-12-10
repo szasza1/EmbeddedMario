@@ -412,7 +412,7 @@ static char CG_CONTENT[] = {
 static unsigned char LEVEL_DESC[4][16] = {
 	//Level 1
 	{' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '},
-	{' ' ,' ',' ',6, ' ' ,2,' ',' ',' ',' ',3,' ',' ', 6,' ',5},
+	{' ' ,' ',' ',6, ' ' ,2, 2,' ',' ',' ',3 ,' ',2, 5,' ', ' ' },
 	//Level 2
 	{' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '},
 	{' ' ,' ',' ',' ',' ',' ',2,' ',' ',' ',' ',' ',5,' ',' ',6}
@@ -646,12 +646,10 @@ static void load_level(unsigned int akt_level){
 		
 	}
 
-	
 	MAP[0][start_col] = 2;
 	MAP[0][start_col + 1] = 3;
 	MAP[1][start_col] = 0;
 	MAP[1][start_col + 1] = 1;
-	
 
 }
 
@@ -813,12 +811,14 @@ static void update(){
 // -1: Nincs utkozes
 // 0: Ervenytelen lepes
 // >=2: Utkozott objektum ID
+// 10: next level
+// 11: prev level
 static int collide(int mode) {
 	switch (mode)
 	{
 	case MARIO_RIGHT: 
 	{	
-		if (start_col == 15) return 0; // TODO:
+		if (start_col == 15) return 10; // Load next level.
 
 		int obj_id = LEVEL_DESC[akt_level + start_row][start_col + 1]; // 2-5
 		
@@ -833,6 +833,7 @@ static int collide(int mode) {
 	}
 	case MARIO_LEFT:
 	{	
+		if (start_col == 0 && col_offset == 0 && akt_level != 0) return 11; // Load prev level.
 		if (start_col == 0 && col_offset == 0 && akt_level == 0) return 0; //invalid movement
 
 		int temp_c_start = col_offset ? start_col : start_col - 1;
@@ -895,6 +896,30 @@ static bool process_collision(int mode, int akt_collision){
 	case MARIO_LEFT:
 	case MARIO_RIGHT:
 	{	
+		if (akt_collision == 10) {
+			start_col = 0;
+			col_offset = 0;
+
+			akt_level += 2;
+
+			load_level(akt_level);
+			init_CG_CONTENT(akt_level);
+			init_screen();
+
+			return true;
+		} else if (akt_collision == 11){
+			start_col = 14;
+			col_offset = 4;
+
+			akt_level -= 2;
+
+			load_level(akt_level);
+			init_CG_CONTENT(akt_level);
+			init_screen();
+
+			return true;
+		}
+
 		if (akt_collision == 6){ // Fire
 			// Death
 		}
@@ -1017,7 +1042,6 @@ static void update_position(int mode){
 }
 
 
-
 void update_position_n(int mode, int n){
 	for (int i = 0; i < n; i++)
 	{
@@ -1055,11 +1079,11 @@ int main() {
 	{	
 		action = is_pressed();
 		
-		if (action == A_NONE && !jump && !fall){
+		if (action == A_NONE && !jump && !fall && !is_standing){
 			is_standing = true;
 			update_mario_buffer();
 			update();
-		} else {
+		} else if (action != A_NONE){
 			is_standing = false;
 		}
 
