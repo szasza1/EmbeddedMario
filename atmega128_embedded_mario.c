@@ -455,6 +455,7 @@ static unsigned int start_col = 0;
 static unsigned int start_row = 1;
 
 static bool face_right = true;
+static bool is_standing = true;
 
 static bool jump = false;
 static bool fall = false;
@@ -501,23 +502,24 @@ static void update_mario_buffer(){
 		// Update char 0 and char 1
 		for (int i = 0; i < (8 - row_offset); i++)
 		{
-			/*int start_index = face_right ? 0 : 8;
-			// CG 0
-			CG_CONTENT[i] |= MARIO[start_index + i + row_offset] >> col_offset;
-			// CG 1
-			if (col_offset) CG_CONTENT[i + 8] |= MARIO[start_index + i + row_offset] << (5 - col_offset);*/
+			if(is_standing){
+				int start_index = face_right ? 0 : 8;
+				// CG 0
+				CG_CONTENT[i] |= MARIO[start_index + i + row_offset] >> col_offset;
+				// CG 1
+				if (col_offset) CG_CONTENT[i + 8] |= MARIO[start_index + i + row_offset] << (5 - col_offset);
+			} else {
+				int start_index = face_right ? 0 : 16;
+				int step = (h_animation_offset < h_anim_gap) ? 0 : 1;
 
+				start_index += (step * 8);
 
-			int start_index = face_right ? 0 : 16;
-			int step = (h_animation_offset < h_anim_gap) ? 0 : 1;
-
-			start_index += (step * 8);
-
-			// CG 0
-			CG_CONTENT[i] |= MARIO_ANIM[start_index + i + row_offset] >> col_offset;
-			// CG 1
-			if (col_offset) CG_CONTENT[i + 8] |= MARIO_ANIM[start_index + i + row_offset] << (5 - col_offset);
-			h_animation_offset = (h_animation_offset + 1) % (2*h_anim_gap);
+				// CG 0
+				CG_CONTENT[i] |= MARIO_ANIM[start_index + i + row_offset] >> col_offset;
+				// CG 1
+				if (col_offset) CG_CONTENT[i + 8] |= MARIO_ANIM[start_index + i + row_offset] << (5 - col_offset);
+				h_animation_offset = (h_animation_offset + 1) % (2*h_anim_gap);
+			}
 		}
 
 	}
@@ -1053,7 +1055,13 @@ int main() {
 	{	
 		action = is_pressed();
 		
-		
+		if (action == A_NONE && !jump && !fall){
+			is_standing = true;
+			update_mario_buffer();
+			update();
+		} else {
+			is_standing = false;
+		}
 
 		if (fall) {
 			if(fall_off == 0) {
@@ -1064,7 +1072,6 @@ int main() {
 				fall_off ++;				
 			} else {
 				move_m(MARIO_DOWN, 3);
-				// Standing ?
 				if(collide(MARIO_DOWN) == -1){
 					fall_off = 3;
 				} else {
