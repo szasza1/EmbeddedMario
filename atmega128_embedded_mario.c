@@ -29,9 +29,9 @@ static void port_init() {
 #define BUTTON_RIGHT	3
 #define BUTTON_UP		4
 #define BUTTON_DOWN		5
-static int button_accept = 1;
+// static int button_accept = 1;
 
-static int button_pressed() {
+/*static int button_pressed() {
 	// up
 	if (!(PINA & 0b00000001) & button_accept) { // check state of button 1 and value of button_accept
 		button_accept = 0; // button is pressed
@@ -64,7 +64,7 @@ static int button_pressed() {
 	}
 
 	return BUTTON_NONE;
-}
+}*/
 
 // Actions
 #define A_NONE -1
@@ -100,7 +100,7 @@ static int is_pressed() {
 }
 
 
-static void button_unlock() {
+/*static void button_unlock() {
 	//check state of all buttons
 	if (
 		((PINA & 0b00000001)
@@ -109,7 +109,7 @@ static void button_unlock() {
 		|(PINA & 0b00001000)
 		|(PINA & 0b00010000)) == 31)
 	button_accept = 1; //if all buttons are released button_accept gets value 1
-}
+}*/
 
 // LCD HELPERS ---------------------------------------------------------------
 
@@ -504,6 +504,7 @@ static int health = 5;
 static int h_animation_offset = 0;
 static int h_anim_gap = 25;
 
+static bool hard = false;
 
 static void update_mario_buffer(){
 
@@ -614,6 +615,7 @@ static bool check_pixel(char src, int offset) {
 	default:
 		break;
 	}
+	return false;
 }
 
 static bool check_left_pixel(char src, int offset) {
@@ -634,6 +636,7 @@ static bool check_left_pixel(char src, int offset) {
 	default:
 		break;
 	}
+	return false;
 }
 
 static bool check_right_pixel(char src, int offset) {
@@ -654,6 +657,7 @@ static bool check_right_pixel(char src, int offset) {
 	default:
 		break;
 	}
+	return false;
 }
 
 
@@ -954,7 +958,7 @@ static void menu(){
 
 	lcd_send_line1(" Embedded MARIO ");
 
-	char s[] = "     PLAY     ";
+	char s[] = " EASY<-->HARD ";
 	lcd_send_command(DD_RAM_ADDR2);
 	lcd_send_data(1);
 	for (int i = 0; i < 14; i++)
@@ -966,10 +970,11 @@ static void menu(){
 	
 	int action = A_NONE;
 
-	while (action == A_NONE) {
+	while (action != A_LEFT && action != A_RIGHT) {
 		action = is_pressed();
 	}
 
+	hard = (action == A_RIGHT) ? true : false;
 }
 
 static bool process_collision(int mode, int akt_collision){
@@ -1010,10 +1015,12 @@ static bool process_collision(int mode, int akt_collision){
 			the_end();
 		}
 
-		/*if (akt_collision == 6){ // Fire
-			dead();
-			return true;
-		}*/
+		if (hard) {
+			if (akt_collision == 6){ // Fire
+				dead();
+				return true;
+			}
+		}
 
 		if (akt_collision == 3 || akt_collision == 5 || akt_collision == 6) {
 			health --;
@@ -1030,11 +1037,12 @@ static bool process_collision(int mode, int akt_collision){
 	}
 	case MARIO_DOWN:
 	{	
-
-		/*if (akt_collision == 6){ // Fire
-			dead();
-			return true;
-		}*/
+		if (hard){
+			if (akt_collision == 6){ // Fire
+				dead();
+				return true;
+			}
+		}
 
 		if (akt_collision == E_1) {
 			if (score < 9) score ++;
