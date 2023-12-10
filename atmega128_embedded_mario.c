@@ -401,34 +401,45 @@ static char CG_CONTENT[] = {
 	0b00000,
 };
 
-// CG map
-// 2 3
-// 0 1
+#define M_C ' '
+#define P_1 2
+#define P_2 4
+#define E_1 3
+#define E_2 5
+#define F_1 6
 
-// LEVEL  ID:
-// 0: Mario
-// 2: Platform 1
-// 3: Mushroom
-static unsigned char LEVEL_DESC[4][16] = {
+#define EM 0
+
+static unsigned char LEVEL_DESC[][16] = {
 	//Level 1
-	{' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '},
-	{' ' ,' ',' ',6, ' ' ,2, 2,' ',' ',' ',3 ,' ',2, 5,' ', ' ' },
+	{M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, P_2, M_C, M_C, M_C},
+	{M_C, M_C, M_C, M_C, P_1, E_1, P_1, M_C, M_C, M_C, E_2, M_C, M_C, M_C, P_2, M_C},
 	//Level 2
-	{' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '},
-	{' ' ,' ',' ',' ',' ',' ',2,' ',' ',' ',' ',' ',5,' ',' ',6}
+	{M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C},
+	{M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C},
+	//Level 3
+	{M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C},
+	{M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C},
+	//Level 4
+	{M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C},
+	{M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C},
 };
 
+
 // Level object ids are in increasing order.
-static unsigned char LEVEL_OBJECTS[3][4] = {
-	{2,3,5,6}, //Level 1
-	{13,3,0,0}, // Fire pos in level 1
-	{2,5,6,0},  //Level 2
-	{0,0,0,0}
+static unsigned char LEVEL_OBJECTS[][4] = {
+	{P_1,E_1,E_2,P_2}, //Level 1
+	{EM,EM,EM,EM},
+	{2,3,5,6},  //Level 2
+	{EM,EM,EM,EM},
+	{2,3,5,0},	//Level 3
+	{EM,EM,EM,EM},
+	{2,3,5,0},	//Level 4
 };
 
 static unsigned char MAP[2][16] = {
-	{' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '},
-	{' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '}
+	{M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C},
+	{M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C}
 };
 
 
@@ -884,6 +895,21 @@ static int collide(int mode) {
 }
 
 
+static void dead() {
+	start_col = 0;
+	col_offset = 0;
+
+	akt_level = 0;
+
+	health = 5;
+	score = 0;
+
+	load_level(akt_level);
+	init_CG_CONTENT(akt_level);
+	init_screen();
+}
+
+
 static bool process_collision(int mode, int akt_collision){
 	if (akt_collision == 0) return true;
 	if (akt_collision == 2 || akt_collision == 4){
@@ -921,11 +947,16 @@ static bool process_collision(int mode, int akt_collision){
 		}
 
 		if (akt_collision == 6){ // Fire
-			// Death
+			dead();
+			return true;
 		}
 
 		if (akt_collision == 3 || akt_collision == 5) {
 			health --;
+			if (!health) {
+				dead();
+				return true;
+			}
 			if(mode == MARIO_LEFT) move_m(MARIO_RIGHT, 2);
 			else move_m(MARIO_LEFT, 2);
 		}
@@ -936,7 +967,8 @@ static bool process_collision(int mode, int akt_collision){
 	{	
 
 		if (akt_collision == 6){ // Fire
-			// Death
+			dead();
+			return true;
 		}
 
 		if (akt_collision == 3) {
@@ -949,7 +981,11 @@ static bool process_collision(int mode, int akt_collision){
 			return false;
 			
 		} else if (akt_collision == 5) {
-			health -= 2;
+			health --;
+			if (!health) {
+				dead();
+				return true;
+			}
 			if(mode == MARIO_LEFT) move_m(MARIO_RIGHT, 4);
 			else move_m(MARIO_LEFT, 4);
 		}
@@ -979,7 +1015,9 @@ static void update_position(int mode){
 
 		col_offset = (face_right ? (col_offset + 1) : (col_offset - 1)) % 5;
 
-		if (collide(MARIO_DOWN) == -1) {
+
+		int c_down = collide(MARIO_DOWN);
+		if (c_down == -1 || c_down == 3 || c_down == 5 || c_down == 6) {
 			fall = true;
 		}
 
@@ -1002,7 +1040,9 @@ static void update_position(int mode){
 			col_offset = (face_right ? (col_offset + 1) : (col_offset - 1)) % 5;
 		}
 
-		if (collide(MARIO_DOWN) == -1) {
+		int c_down = collide(MARIO_DOWN);
+
+		if (c_down == -1 || c_down == 3 || c_down == 5 || c_down == 6) {
 			fall = true;
 		}
 
@@ -1121,11 +1161,14 @@ int main() {
 		// Process the input
 		if(action == A_LEFT)
 		{	
-			move_m(MARIO_LEFT, 2);
+			if (jump || fall) move_m(MARIO_LEFT, 3);
+			else move_m(MARIO_LEFT, 2);
+			
 		}	
 		else if (action == A_RIGHT)
 		{
-			move_m(MARIO_RIGHT, 2);
+			if (jump || fall) move_m(MARIO_RIGHT, 3);
+			else move_m(MARIO_RIGHT, 2);
 		}
 		else if (action == A_JUMP && (!jump) && (!fall)) {
 			jump = true;
