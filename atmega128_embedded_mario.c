@@ -423,10 +423,10 @@ static char CG_CONTENT[] = {
 static unsigned char LEVEL_DESC[][16] = {
 	//Level 1
 	{M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C},
-	{M_C, M_C, M_C, W_1, M_C, E_1, P_1, M_C, M_C, M_C, E_2, M_C, M_C, M_C, P_2, M_C},
+	{M_C, M_C, M_C, P_1, M_C, E_1, P_1, M_C, M_C, M_C, E_2, M_C, P_2, M_C, M_C, M_C},
 	//Level 2
 	{M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C},
-	{M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C},
+	{M_C, M_C, P_1, E_1, P_1, M_C, M_C, F_1, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C},
 	//Level 3
 	{M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C},
 	{M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C},
@@ -440,7 +440,7 @@ static unsigned char LEVEL_DESC[][16] = {
 static unsigned char LEVEL_OBJECTS[][4] = {
 	{P_1,E_1,E_2,P_2}, //Level 1
 	{EM,EM,EM,EM},
-	{2,3,5,6},  //Level 2
+	{E_1, P_1, F_1, 0},  //Level 2
 	{EM,EM,EM,EM},
 	{2,3,5,0},	//Level 3
 	{EM,EM,EM,EM},
