@@ -29,42 +29,6 @@ static void port_init() {
 #define BUTTON_RIGHT	3
 #define BUTTON_UP		4
 #define BUTTON_DOWN		5
-// static int button_accept = 1;
-
-/*static int button_pressed() {
-	// up
-	if (!(PINA & 0b00000001) & button_accept) { // check state of button 1 and value of button_accept
-		button_accept = 0; // button is pressed
-		return BUTTON_UP;
-	}
-
-	// left
-	if (!(PINA & 0b00000010) & button_accept) { // check state of button 2 and value of button_accept
-		button_accept = 0; // button is pressed
-		return BUTTON_LEFT;
-	}
-
-	// center
-	if (!(PINA & 0b00000100) & button_accept) { // check state of button 3 and value of button_accept
-		button_accept = 0; // button is pressed
-		return BUTTON_CENTER;
-	}
-
-	// right
-	if (!(PINA & 0b00001000) & button_accept) { // check state of button 4 and value of button_accept
-		button_accept = 0; // button is pressed
-		return BUTTON_RIGHT;
-	}
-
-
-	// down
-	if (!(PINA & 0b00010000) & button_accept) { // check state of button 5 and value of button_accept
-		button_accept = 0; // button is pressed
-		return BUTTON_DOWN;
-	}
-
-	return BUTTON_NONE;
-}*/
 
 // Actions
 #define A_NONE -1
@@ -100,17 +64,6 @@ static int is_pressed() {
 }
 
 
-/*static void button_unlock() {
-	//check state of all buttons
-	if (
-		((PINA & 0b00000001)
-		|(PINA & 0b00000010)
-		|(PINA & 0b00000100)
-		|(PINA & 0b00001000)
-		|(PINA & 0b00010000)) == 31)
-	button_accept = 1; //if all buttons are released button_accept gets value 1
-}*/
-
 // LCD HELPERS ---------------------------------------------------------------
 
 #define		CLR_DISP	    0x00000001
@@ -126,12 +79,6 @@ static int is_pressed() {
 #define		DD_RAM_ADDR	  0x00000080
 #define		DD_RAM_ADDR2	0x000000C0
 
-//#define		ENTRY_INC	    0x00000007	//LCD increment
-//#define		ENTRY_DEC	    0x00000005	//LCD decrement
-//#define		SH_LCD_LEFT	  0x00000010	//LCD shift left
-//#define		SH_LCD_RIGHT	0x00000014	//LCD shift right
-//#define		MV_LCD_LEFT	  0x00000018	//LCD move left
-//#define		MV_LCD_RIGHT	0x0000001C	//LCD move right
 
 static void lcd_delay(unsigned int b) {
 	volatile unsigned int a = b;
@@ -440,7 +387,7 @@ static unsigned char LEVEL_DESC[][16] = {
 	{M_C, M_C, P_1, M_C, W_1, E_1, W_1, E_1, M_C, F_1, P_2, W_1, E_1, F_1, M_C, M_C},
 	//Level 6
 	{M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C},
-	{M_C, P_2, W_1, F_1, P_2, M_C, E_2, M_C, W_1, M_C, W_1, E_2, M_C, E_2, M_C, M_C}
+	{M_C, P_2, W_1, F_1, P_2, M_C, E_2, M_C, W_1, M_C, W_1, E_2, M_C, W_1, M_C, M_C}
 };
 
 
@@ -1028,8 +975,8 @@ static bool process_collision(int mode, int akt_collision){
 				dead();
 				return true;
 			}
-			if(mode == MARIO_LEFT) move_m(MARIO_RIGHT, 2);
-			else move_m(MARIO_LEFT, 2);
+			if(mode == MARIO_LEFT) {move_m(MARIO_RIGHT, 2);}
+			else {move_m(MARIO_LEFT, 2);}
 		}
 
 		return false;
@@ -1157,7 +1104,7 @@ static void update_position(int mode){
 }
 
 
-void update_position_n(int mode, int n){
+static void update_position_n(int mode, int n){
 	for (int i = 0; i < n; i++)
 	{
 		update_position(mode);
