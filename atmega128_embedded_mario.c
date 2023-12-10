@@ -284,6 +284,15 @@ static char MARIO[] = {
 	0b00110,
 	0b01100,
 	0b11111,
+	// Wall
+	0b00100,
+	0b00100,
+	0b00100,
+	0b00100,
+	0b00100,
+	0b00100,
+	0b00100,
+	0b00000,
 };
 
 
@@ -407,13 +416,14 @@ static char CG_CONTENT[] = {
 #define E_1 3
 #define E_2 5
 #define F_1 6
+#define W_1 7
 
 #define EM 0
 
 static unsigned char LEVEL_DESC[][16] = {
 	//Level 1
-	{M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, P_2, M_C, M_C, M_C},
-	{M_C, M_C, M_C, M_C, P_1, E_1, P_1, M_C, M_C, M_C, E_2, M_C, M_C, M_C, P_2, M_C},
+	{M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C},
+	{M_C, M_C, M_C, W_1, M_C, E_1, P_1, M_C, M_C, M_C, E_2, M_C, M_C, M_C, P_2, M_C},
 	//Level 2
 	{M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C},
 	{M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C, M_C},
@@ -496,7 +506,7 @@ static void update_mario_buffer(){
 	{
 		for (int j = 0; j < 8; j++)
 		{
-			if(obj_ids[i] >= 2 && obj_ids[i] <= 10) {				//TODO: Object ID valid check
+			if(obj_ids[i] >= 2 && obj_ids[i] <= 7) {				//TODO: Object ID valid check
 				CG_CONTENT[i * 8 + j] = MARIO[obj_ids[i] * 8 + j];
 			} else {
 				CG_CONTENT[i * 8 + j] = 0;
@@ -640,11 +650,15 @@ static void load_level(unsigned int akt_level){
 	{
 		for (int j = 0; j < 16; j++)
 		{	
-			if (!LEVEL_DESC[akt_level + i][j] || LEVEL_DESC[akt_level + i][j] == ' '){
+
+			if (!LEVEL_DESC[akt_level + i][j] || LEVEL_DESC[akt_level + i][j] == M_C){
 
 				MAP[i][j] = LEVEL_DESC[akt_level + i][j];
 
-			} else {
+			} else if (LEVEL_DESC[akt_level + i][j] == W_1) {
+				MAP[i][j] = '|';
+			}
+			else {
 				
 				for (int z = 0; z < 4; z++)
 				{
@@ -696,14 +710,15 @@ static int update_map(){
 		int obj_id_0 = LEVEL_DESC[akt_level][start_col - 1]; 
 		int obj_id_1 = LEVEL_DESC[akt_level + 1][start_col - 1]; 
 
-		MAP[0][start_col - 1] = ' ';  
-		MAP[1][start_col - 1] = ' ';
+		MAP[0][start_col - 1] = (obj_id_0 == W_1) ? '|' : M_C;  
+		MAP[1][start_col - 1] = (obj_id_1 == W_1) ? '|' : M_C;  
+
 
 		
 		for (int z = 0; z < 4; z++)
 		{
-			if (LEVEL_OBJECTS[akt_level][z] == obj_id_0) { MAP[0][start_col - 1] = 4 + z;}
-			if (LEVEL_OBJECTS[akt_level][z] == obj_id_1) { MAP[1][start_col - 1] = 4 + z;}
+			if (LEVEL_OBJECTS[akt_level][z] == obj_id_0 && obj_id_0 != W_1) { MAP[0][start_col - 1] = 4 + z;}
+			if (LEVEL_OBJECTS[akt_level][z] == obj_id_1 && obj_id_1 != W_1) { MAP[1][start_col - 1] = 4 + z;}
 		}
 		
 		shift_mode = 1;
@@ -712,14 +727,14 @@ static int update_map(){
 		int obj_id_0 = LEVEL_DESC[akt_level][start_col + 2];
 		int obj_id_1 = LEVEL_DESC[akt_level + 1][start_col + 2];
 
-		MAP[0][start_col + 2] = ' ';  
-		MAP[1][start_col + 2] = ' ';
+		MAP[0][start_col + 2] = (obj_id_0 == W_1) ? '|' : M_C;  
+		MAP[1][start_col + 2] = (obj_id_1 == W_1) ? '|' : M_C;
 
 		
 		for (int z = 0; z < 4; z++)
 		{
-			if (LEVEL_OBJECTS[akt_level][z] == obj_id_0) { MAP[0][start_col + 2] = 4 + z;}
-			if (LEVEL_OBJECTS[akt_level][z] == obj_id_1) { MAP[1][start_col + 2] = 4 + z;}
+			if (LEVEL_OBJECTS[akt_level][z] == obj_id_0 && obj_id_0 != W_1) { MAP[0][start_col + 2] = 4 + z;}
+			if (LEVEL_OBJECTS[akt_level][z] == obj_id_1 && obj_id_1 != W_1) { MAP[1][start_col + 2] = 4 + z;}
 		}
 		shift_mode = 2;
 	}
@@ -834,7 +849,7 @@ static int collide(int mode) {
 		int obj_id = LEVEL_DESC[akt_level + start_row][start_col + 1]; // 2-5
 		
 		// detection
-		if (obj_id >= 2 && obj_id <= 6){
+		if (obj_id >= 2 && obj_id <= 7){
 			for (int i = row_offset; i < 8; i++)
 			{
 				if ( check_pixel(MARIO[(obj_id + 1) * 8 - 1 - i], col_offset) ) return obj_id;
@@ -853,7 +868,7 @@ static int collide(int mode) {
 		int obj_id = LEVEL_DESC[akt_level + start_row][temp_c_start];
 
 		// detection
-		if (obj_id >= 2 && obj_id <= 6){
+		if (obj_id >= 2 && obj_id <= 7){
 			for (int i = row_offset; i < 8; i++)
 			{
 				if ( check_pixel(MARIO[(obj_id + 1) * 8 - 1 - i], (temp_c_off)) ) return obj_id;
@@ -871,13 +886,13 @@ static int collide(int mode) {
 		
 		int obj_id = LEVEL_DESC[akt_level + temp_r_start][start_col];
 
-		if (!col_offset && obj_id >= 2 && obj_id <= 6 && MARIO[(obj_id + 1) * 8 - 1 - temp_r_off] != 0) return obj_id;
+		if (!col_offset && obj_id >= 2 && obj_id <= 7 && MARIO[(obj_id + 1) * 8 - 1 - temp_r_off] != 0) return obj_id;
 
 		if (col_offset) {
 			int obj_id_2 = LEVEL_DESC[akt_level + temp_r_start][start_col + 1];
 
-			char left_base = (obj_id <= 6 && obj_id >= 2) ? MARIO[(obj_id + 1) * 8 - 1 - temp_r_off] : 0;
-			char right_base = (obj_id_2 <= 6 && obj_id_2 >= 2) ? MARIO[(obj_id_2 + 1) * 8 - 1 - temp_r_off] : 0;
+			char left_base = (obj_id <= 7 && obj_id >= 2) ? MARIO[(obj_id + 1) * 8 - 1 - temp_r_off] : 0;
+			char right_base = (obj_id_2 <= 7 && obj_id_2 >= 2) ? MARIO[(obj_id_2 + 1) * 8 - 1 - temp_r_off] : 0;
 
 			bool l_res = check_left_pixel(left_base, col_offset);
 			bool r_res = check_right_pixel(right_base, col_offset);
@@ -912,7 +927,7 @@ static void dead() {
 
 static bool process_collision(int mode, int akt_collision){
 	if (akt_collision == 0) return true;
-	if (akt_collision == 2 || akt_collision == 4){
+	if (akt_collision == 2 || akt_collision == 4 || akt_collision == W_1){
 		jump = false;
 		return true;
 	}
@@ -962,6 +977,7 @@ static bool process_collision(int mode, int akt_collision){
 		}
 
 		return false;
+		break;
 	}
 	case MARIO_DOWN:
 	{	
@@ -989,6 +1005,7 @@ static bool process_collision(int mode, int akt_collision){
 			if(mode == MARIO_LEFT) move_m(MARIO_RIGHT, 4);
 			else move_m(MARIO_LEFT, 4);
 		}
+		break;
 	}
 	default:
 		break;
@@ -1049,7 +1066,7 @@ static void update_position(int mode){
 		break;
 	}
 	case MARIO_UP:
-	{
+	{	
 		if (row_offset == 7)
 		{
 			start_row = 0;
@@ -1126,6 +1143,7 @@ int main() {
 		} else if (action != A_NONE){
 			is_standing = false;
 		}
+
 
 		if (fall) {
 			if(fall_off == 0) {
