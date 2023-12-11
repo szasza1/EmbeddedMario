@@ -797,9 +797,9 @@ static void update(){
 }
 
 
-// -1: Nincs utkozes
-// 0: Ervenytelen lepes
-// >=2: Utkozott objektum ID
+// -1: There is no collision.
+// 0: Error
+// >=2: Object ID
 // 10: next level
 // 11: prev level
 // 12: THE END
@@ -923,6 +923,8 @@ static void menu(){
 
 	hard = (action == A_RIGHT) ? true : false;
 }
+
+static void move_m(int mode, int n);	// process_collision uses this function
 
 static bool process_collision(int mode, int akt_collision){
 	if (akt_collision == 0) return true;
@@ -1112,7 +1114,7 @@ static void update_position_n(int mode, int n){
 }
 
 
-void move_m(int mode, int n){ 
+static void move_m(int mode, int n){ 
 	if (n == 1) {
 		update_position(mode);	
 	} else {
@@ -1124,6 +1126,8 @@ void move_m(int mode, int n){
 
 
 #define H_SPEED 2
+#define A_SPEED 3
+
 
 int main() {
 	port_init();
@@ -1190,13 +1194,13 @@ int main() {
 		// Process the input
 		if(action == A_LEFT)
 		{	
-			if (jump || fall) move_m(MARIO_LEFT, 3);
+			if (jump || fall) move_m(MARIO_LEFT, A_SPEED);
 			else move_m(MARIO_LEFT, H_SPEED);
 			
 		}	
 		else if (action == A_RIGHT)
 		{
-			if (jump || fall) move_m(MARIO_RIGHT, 3);
+			if (jump || fall) move_m(MARIO_RIGHT, A_SPEED);
 			else move_m(MARIO_RIGHT, H_SPEED);
 		}
 		else if (action == A_JUMP && (!jump) && (!fall)) {
